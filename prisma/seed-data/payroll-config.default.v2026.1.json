@@ -51,23 +51,23 @@
       "category": "CATEGORY_1",
       "wageFrom": 0,
       "wageTo": 6000,
-      "employeeContribution": 0,
-      "employerContribution": 0
+      "employeeContribution": 39.75,
+      "employerContribution": 139.25
     },
     {
       "category": "CATEGORY_2",
       "wageFrom": 0,
       "wageTo": 6000,
       "employeeContribution": 0,
-      "employerContribution": 0
+      "employerContribution": 59.4
     }
   ],
   "eisRates": [
     {
       "wageFrom": 0,
       "wageTo": 6000,
-      "employeeContribution": 0,
-      "employerContribution": 0
+      "employeeContribution": 39.5,
+      "employerContribution": 39.5
     }
   ],
   "taxBrackets": [
@@ -91,6 +91,55 @@
       "chargeableIncomeTo": 35000,
       "ratePercent": 3,
       "cumulativeTaxBase": 150
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 35000.01,
+      "chargeableIncomeTo": 50000,
+      "ratePercent": 6,
+      "cumulativeTaxBase": 600
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 50000.01,
+      "chargeableIncomeTo": 70000,
+      "ratePercent": 11,
+      "cumulativeTaxBase": 1500
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 70000.01,
+      "chargeableIncomeTo": 100000,
+      "ratePercent": 19,
+      "cumulativeTaxBase": 3700
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 100000.01,
+      "chargeableIncomeTo": 400000,
+      "ratePercent": 25,
+      "cumulativeTaxBase": 9400
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 400000.01,
+      "chargeableIncomeTo": 600000,
+      "ratePercent": 26,
+      "cumulativeTaxBase": 84400
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 600000.01,
+      "chargeableIncomeTo": 2000000,
+      "ratePercent": 28,
+      "cumulativeTaxBase": 136400
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 2000000.01,
+      "chargeableIncomeTo": null,
+      "ratePercent": 30,
+      "cumulativeTaxBase": 528400
     },
     {
       "residencyStatus": "NON_RESIDENT",
