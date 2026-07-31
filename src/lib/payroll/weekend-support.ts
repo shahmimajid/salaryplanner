@@ -21,7 +21,24 @@ export interface WeekendSupportResult {
   effectiveMarginalDeductionRatePercent: Money;
 }
 
-function resolveGrossAmount(input: WeekendSupportInput): Money {
+export interface WeekendSupportGrossAmountInput {
+  paymentMethod: WeekendSupportPaymentMethod;
+  fixedRatePerDay: Money | null;
+  weekendDaysCount: number | null;
+  fixedMonthlyAmount: Money | null;
+  manualTotalAmount: Money | null;
+}
+
+/**
+ * Resolves the weekend-support allowance gross amount per the chosen
+ * payment method. Exported separately so an orchestrator can compute this
+ * up front (e.g. to feed into `weekendSupportAllowance` for a full
+ * pipeline run) before the net-salary figures `calculateWeekendSupportNet`
+ * itself needs even exist.
+ */
+export function resolveWeekendSupportGrossAmount(
+  input: WeekendSupportGrossAmountInput,
+): Money {
   switch (input.paymentMethod) {
     case "FIXED_PER_DAY":
       if (input.fixedRatePerDay === null || input.weekendDaysCount === null) {
@@ -60,7 +77,7 @@ function resolveGrossAmount(input: WeekendSupportInput): Money {
 export function calculateWeekendSupportNet(
   input: WeekendSupportInput,
 ): WeekendSupportResult {
-  const weekendSupportGrossAmount = resolveGrossAmount(input);
+  const weekendSupportGrossAmount = resolveWeekendSupportGrossAmount(input);
 
   const netAdditionalIncomeFromWeekendSupport =
     input.netSalaryWithWeekendSupport.minus(

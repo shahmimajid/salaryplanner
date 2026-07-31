@@ -1,27 +1,18 @@
 import { describe, expect, it } from "vitest";
 import Decimal from "decimal.js";
-import { calculateGrossIncome } from "./gross-income";
-import { calculateEPF } from "./epf";
-import { calculateSOCSO } from "./socso";
-import { calculateEIS } from "./eis";
-import { calculateAnnualTaxableIncome } from "./tax-annual-income";
-import { calculatePCB } from "./pcb";
-import { calculateNetSalary } from "./net-salary";
 import { calculateWeekendSupportNet } from "./weekend-support";
+import { runSalaryPipeline } from "./run-pipeline";
 import { buildRealisticTestConfig, buildTestProfile } from "./test-fixtures";
-import type {
-  PayrollConfigSnapshot,
-  PayrollProfileSnapshot,
-  SocsoCategory,
-} from "./types";
+import type { PayrollConfigSnapshot, PayrollProfileSnapshot } from "./types";
 
 const d = (n: number) => new Decimal(n);
 
 /**
- * Composes all 9 calculation-engine functions in the order a real caller
- * (Phase 3's salary-entry flow) is expected to use them. Test-only — not
- * exported from index.ts. See docs/architecture.md for the production
- * orchestration contract this mirrors.
+ * Thin adapter over the real production orchestrator (run-pipeline.ts),
+ * defaulting the fields this test suite doesn't exercise (fixedAllowance,
+ * commission, other income, epfAdjustment, EIS exemption) to zero/false —
+ * keeps every scenario below exercising the actual application code path,
+ * not a duplicate reimplementation.
  */
 function runFullPipeline(input: {
   basicSalary: Decimal;
@@ -34,7 +25,7 @@ function runFullPipeline(input: {
   profile: PayrollProfileSnapshot;
   config: PayrollConfigSnapshot;
 }) {
-  const gross = calculateGrossIncome({
+  return runSalaryPipeline({
     basicSalary: input.basicSalary,
     fixedAllowance: d(0),
     weekendSupportAllowance: input.weekendSupportAllowance,
@@ -42,70 +33,15 @@ function runFullPipeline(input: {
     commission: d(0),
     otherTaxableIncome: d(0),
     otherNonTaxableReimbursement: d(0),
-  });
-
-  const epfWage = gross.grossTaxableIncome; // bonus included in EPF wage
-  const socsoEisWage = gross.grossTaxableIncome.minus(input.bonus); // bonus excluded
-
-  const epf = calculateEPF({
-    epfWage,
-    profile: {
-      citizenshipStatus: input.profile.citizenshipStatus,
-      epfEmployeeRatePercent: input.profile.epfEmployeeRatePercent,
-      isBelow60: input.profile.isBelow60,
-    },
-    config: input.config,
     epfAdjustment: d(0),
-  });
-
-  const socsoCategory: SocsoCategory = input.profile.isBelow60
-    ? "CATEGORY_1"
-    : "CATEGORY_2";
-  const socso = calculateSOCSO({
-    socsoWage: socsoEisWage,
-    category: socsoCategory,
-    config: input.config,
-  });
-  const eis = calculateEIS({
-    eisWage: socsoEisWage,
-    isEisExempt: false,
-    config: input.config,
-  });
-
-  const monthsRemainingInYear = 12 - input.monthsElapsedInYear;
-
-  const annualIncome = calculateAnnualTaxableIncome({
-    currentMonthGrossTaxableIncome: gross.grossTaxableIncome.minus(input.bonus),
-    currentMonthEpfEmployee: epf.employeeContribution,
+    zakat: input.zakat,
     previousCumulativeIncomeForYear: input.previousCumulativeIncomeForYear,
-    monthsRemainingInYear,
+    previousCumulativePcbPaid: input.previousCumulativePcbPaid,
+    monthsElapsedInYear: input.monthsElapsedInYear,
+    isEisExempt: false,
     profile: input.profile,
     config: input.config,
   });
-
-  const pcb = calculatePCB({
-    projectedAnnualChargeableIncome:
-      annualIncome.projectedAnnualChargeableIncome,
-    residencyStatus: input.profile.residencyStatus,
-    previousCumulativePcbPaid: input.previousCumulativePcbPaid,
-    monthsElapsedInYear: input.monthsElapsedInYear,
-    monthsRemainingInYear,
-    zakatAmount: input.zakat,
-    bonusOrIrregularPayment: input.bonus.gt(0) ? input.bonus : null,
-    config: input.config,
-  });
-
-  const netSalary = calculateNetSalary({
-    grossSalary: gross.grossIncomeTotal,
-    epfEmployee: epf.employeeContribution,
-    socsoEmployee: socso.employeeContribution,
-    eisEmployee: eis.employeeContribution,
-    pcb: pcb.currentMonthPcb,
-    zakat: input.zakat,
-    otherDeductions: d(0),
-  });
-
-  return { gross, epf, socso, eis, annualIncome, pcb, netSalary };
 }
 
 function runWithAndWithoutWeekendSupport(
