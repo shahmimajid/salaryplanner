@@ -1,4 +1,5 @@
 import type { Money } from "./types";
+import { roundMoney } from "./rounding";
 
 export interface GrossIncomeInput {
   basicSalary: Money;
@@ -18,7 +19,22 @@ export interface GrossIncomeResult {
 
 /** Sums a SalaryEntry's income fields into taxable/non-taxable/total gross figures. */
 export function calculateGrossIncome(
-  _input: GrossIncomeInput,
+  input: GrossIncomeInput,
 ): GrossIncomeResult {
-  throw new Error("Not implemented — Phase 2");
+  const grossTaxableIncome = input.basicSalary
+    .plus(input.fixedAllowance)
+    .plus(input.weekendSupportAllowance)
+    .plus(input.bonus)
+    .plus(input.commission)
+    .plus(input.otherTaxableIncome);
+
+  const grossNonTaxableIncome = input.otherNonTaxableReimbursement;
+
+  const grossIncomeTotal = grossTaxableIncome.plus(grossNonTaxableIncome);
+
+  return {
+    grossTaxableIncome: roundMoney(grossTaxableIncome),
+    grossNonTaxableIncome: roundMoney(grossNonTaxableIncome),
+    grossIncomeTotal: roundMoney(grossIncomeTotal),
+  };
 }

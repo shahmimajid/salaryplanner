@@ -87,7 +87,9 @@ async function main() {
     where: { version: payrollConfig.version },
   });
   if (existing) {
-    console.log(`Payroll configuration ${payrollConfig.version} already seeded, skipping.`);
+    console.log(
+      `Payroll configuration ${payrollConfig.version} already seeded, skipping.`,
+    );
     return;
   }
 
@@ -96,7 +98,9 @@ async function main() {
       version: payrollConfig.version,
       label: payrollConfig.label,
       effectiveFrom: new Date(payrollConfig.effectiveFrom),
-      effectiveTo: payrollConfig.effectiveTo ? new Date(payrollConfig.effectiveTo) : null,
+      effectiveTo: payrollConfig.effectiveTo
+        ? new Date(payrollConfig.effectiveTo)
+        : null,
       isActive: payrollConfig.isActive,
       sourceReference: payrollConfig.sourceReference,
       notes: payrollConfig.notes,

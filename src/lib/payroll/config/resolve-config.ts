@@ -1,16 +1,107 @@
-import type { PayrollConfigSnapshot } from "../types";
+import Decimal from "decimal.js";
+import { Prisma } from "@/generated/prisma/client";
+import { prisma } from "@/lib/db/prisma";
+import type { Money, PayrollConfigSnapshot } from "../types";
 
 export interface ResolveConfigInput {
   effectiveDate: string; // ISO date — typically the SalaryEntry.payrollMonth
 }
 
 /**
+ * Prisma's generated Decimal (from @prisma/client/runtime) is a distinct
+ * class from decimal.js's Decimal, even though structurally compatible —
+ * always convert explicitly via a string round-trip, never assume identity.
+ */
+function toMoney(value: Prisma.Decimal): Money {
+  return new Decimal(value.toString());
+}
+
+function toMoneyOrNull(value: Prisma.Decimal | null): Money | null {
+  return value === null ? null : toMoney(value);
+}
+
+/**
  * Loads the single active PayrollConfiguration (and its rate/bracket/relief/
  * rebate rows) whose effective range covers the given date, and flattens it
- * into a PayrollConfigSnapshot. Implementation queries Prisma; Phase 1 stub only.
+ * into a PayrollConfigSnapshot.
  */
 export async function resolveConfig(
-  _input: ResolveConfigInput,
+  input: ResolveConfigInput,
 ): Promise<PayrollConfigSnapshot> {
-  throw new Error("Not implemented — Phase 2");
+  const date = new Date(input.effectiveDate);
+
+  const config = await prisma.payrollConfiguration.findFirst({
+    where: {
+      isActive: true,
+      effectiveFrom: { lte: date },
+      OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
+    },
+    // Latest applicable version wins if ranges ever overlap (docs/assumptions.md #13).
+    orderBy: { effectiveFrom: "desc" },
+    include: {
+      epfRates: true,
+      epfWageBands: true,
+      socsoRates: true,
+      eisRates: true,
+      taxBrackets: true,
+      taxReliefs: true,
+      taxRebates: true,
+    },
+  });
+
+  if (!config) {
+    throw new Error(
+      `No active payroll configuration found for effective date ${input.effectiveDate}.`,
+    );
+  }
+
+  return {
+    version: config.version,
+    effectiveFrom: config.effectiveFrom.toISOString().slice(0, 10),
+    effectiveTo: config.effectiveTo
+      ? config.effectiveTo.toISOString().slice(0, 10)
+      : null,
+    epfRates: config.epfRates.map((r) => ({
+      citizenshipStatus: r.citizenshipStatus,
+      minAge: r.minAge,
+      maxAge: r.maxAge,
+      employeeRatePercent: toMoney(r.employeeRatePercent),
+      employerRatePercent: toMoney(r.employerRatePercent),
+    })),
+    epfWageBands: config.epfWageBands.map((b) => ({
+      wageFrom: toMoney(b.wageFrom),
+      wageTo: toMoneyOrNull(b.wageTo),
+      employeeContribution: toMoney(b.employeeContribution),
+      employerContribution: toMoney(b.employerContribution),
+    })),
+    socsoRates: config.socsoRates.map((r) => ({
+      category: r.category,
+      wageFrom: toMoney(r.wageFrom),
+      wageTo: toMoneyOrNull(r.wageTo),
+      employeeContribution: toMoney(r.employeeContribution),
+      employerContribution: toMoney(r.employerContribution),
+    })),
+    eisRates: config.eisRates.map((r) => ({
+      wageFrom: toMoney(r.wageFrom),
+      wageTo: toMoneyOrNull(r.wageTo),
+      employeeContribution: toMoney(r.employeeContribution),
+      employerContribution: toMoney(r.employerContribution),
+    })),
+    taxBrackets: config.taxBrackets.map((t) => ({
+      residencyStatus: t.residencyStatus,
+      chargeableIncomeFrom: toMoney(t.chargeableIncomeFrom),
+      chargeableIncomeTo: toMoneyOrNull(t.chargeableIncomeTo),
+      ratePercent: toMoney(t.ratePercent),
+      cumulativeTaxBase: toMoney(t.cumulativeTaxBase),
+    })),
+    taxReliefs: config.taxReliefs.map((r) => ({
+      code: r.code,
+      maxAmount: toMoney(r.maxAmount),
+    })),
+    taxRebates: config.taxRebates.map((r) => ({
+      code: r.code,
+      amount: toMoneyOrNull(r.amount),
+      incomeThreshold: toMoneyOrNull(r.incomeThreshold),
+    })),
+  };
 }
