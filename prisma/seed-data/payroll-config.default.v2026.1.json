@@ -1,0 +1,138 @@
+{
+  "version": "2026.1",
+  "label": "Malaysia Statutory Rates — Illustrative Defaults (UNVERIFIED)",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "isActive": true,
+  "sourceReference": "PLACEHOLDER — replace with KWSP Third Schedule / PERKESO Act 4 & 800 tables / LHDN PCB formula document links before production use. See docs/assumptions.md.",
+  "notes": "Seed values are illustrative only and are NOT verified against current official tables. See docs/assumptions.md.",
+  "epfRates": [
+    {
+      "citizenshipStatus": "CITIZEN",
+      "minAge": null,
+      "maxAge": 59,
+      "employeeRatePercent": 11.0,
+      "employerRatePercent": 13.0,
+      "notes": "UNVERIFIED — standard rate below age 60, wage <= RM5,000 (employer rate differs above RM5,000 per KWSP table — verify)."
+    },
+    {
+      "citizenshipStatus": "CITIZEN",
+      "minAge": 60,
+      "maxAge": null,
+      "employeeRatePercent": 0.0,
+      "employerRatePercent": 4.0,
+      "notes": "UNVERIFIED — reduced/no mandatory employee contribution at age 60+, verify current KWSP rule."
+    },
+    {
+      "citizenshipStatus": "NON_CITIZEN",
+      "minAge": null,
+      "maxAge": null,
+      "employeeRatePercent": 0.0,
+      "employerRatePercent": 0.0,
+      "notes": "UNVERIFIED — EPF is typically optional for non-citizens; verify current KWSP rule and whether employee/employer can still elect to contribute."
+    }
+  ],
+  "epfWageBands": [
+    {
+      "wageFrom": 0,
+      "wageTo": 10,
+      "employeeContribution": 0,
+      "employerContribution": 0
+    },
+    {
+      "wageFrom": 10.01,
+      "wageTo": 20,
+      "employeeContribution": 1,
+      "employerContribution": 3
+    }
+  ],
+  "socsoRates": [
+    {
+      "category": "CATEGORY_1",
+      "wageFrom": 0,
+      "wageTo": 6000,
+      "employeeContribution": 0,
+      "employerContribution": 0
+    },
+    {
+      "category": "CATEGORY_2",
+      "wageFrom": 0,
+      "wageTo": 6000,
+      "employeeContribution": 0,
+      "employerContribution": 0
+    }
+  ],
+  "eisRates": [
+    {
+      "wageFrom": 0,
+      "wageTo": 6000,
+      "employeeContribution": 0,
+      "employerContribution": 0
+    }
+  ],
+  "taxBrackets": [
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 0,
+      "chargeableIncomeTo": 5000,
+      "ratePercent": 0,
+      "cumulativeTaxBase": 0
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 5000.01,
+      "chargeableIncomeTo": 20000,
+      "ratePercent": 1,
+      "cumulativeTaxBase": 0
+    },
+    {
+      "residencyStatus": "RESIDENT",
+      "chargeableIncomeFrom": 20000.01,
+      "chargeableIncomeTo": 35000,
+      "ratePercent": 3,
+      "cumulativeTaxBase": 150
+    },
+    {
+      "residencyStatus": "NON_RESIDENT",
+      "chargeableIncomeFrom": 0,
+      "chargeableIncomeTo": null,
+      "ratePercent": 30,
+      "cumulativeTaxBase": 0
+    }
+  ],
+  "taxReliefs": [
+    {
+      "code": "SELF",
+      "label": "Individual relief",
+      "maxAmount": 9000,
+      "description": null
+    },
+    {
+      "code": "SPOUSE",
+      "label": "Spouse relief (no income)",
+      "maxAmount": 4000,
+      "description": null
+    },
+    {
+      "code": "CHILD_BELOW_18",
+      "label": "Child relief (below 18, per child)",
+      "maxAmount": 2000,
+      "description": null
+    },
+    {
+      "code": "EPF_LIFE_INSURANCE",
+      "label": "EPF and life insurance relief",
+      "maxAmount": 7000,
+      "description": null
+    }
+  ],
+  "taxRebates": [
+    {
+      "code": "ZAKAT_REBATE",
+      "label": "Zakat/fitrah rebate",
+      "amount": null,
+      "incomeThreshold": null,
+      "description": "Rebate, not a deduction — offsets PCB directly."
+    }
+  ]
+}

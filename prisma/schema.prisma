@@ -1,0 +1,435 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  // url is intentionally NOT set here in Prisma 7 — see prisma.config.ts
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MaritalStatus {
+  SINGLE
+  MARRIED
+  DIVORCED
+  WIDOWED
+}
+
+enum ResidencyStatus {
+  RESIDENT
+  NON_RESIDENT
+}
+
+enum CitizenshipStatus {
+  CITIZEN
+  PERMANENT_RESIDENT
+  NON_CITIZEN
+}
+
+enum SocsoCategory {
+  CATEGORY_1 // employment injury + invalidity scheme (employees registered below age 60)
+  CATEGORY_2 // employment injury scheme only (employees 60+ / first registered after 60)
+}
+
+enum WeekendSupportPaymentMethod {
+  FIXED_PER_DAY
+  FIXED_MONTHLY
+  MANUAL_TOTAL
+}
+
+enum DeductionCategory {
+  EPF_EMPLOYEE
+  SOCSO_EMPLOYEE
+  EIS_EMPLOYEE
+  PCB
+  ZAKAT
+  OTHER
+}
+
+enum SavingsCategory {
+  HOUSING
+  CAR
+  UTILITIES
+  FOOD
+  CHILDREN
+  INSURANCE_TAKAFUL
+  DEBT
+  INVESTMENT
+  EMERGENCY_FUND
+  GENERAL_SAVINGS
+  WEEKEND_SUPPORT_SAVINGS
+  PERSONAL_SPENDING
+}
+
+enum AllocationType {
+  FIXED_AMOUNT
+  PERCENTAGE
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  LOGIN
+  LOGOUT
+  CONFIG_CHANGE
+  EXPORT
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Auth.js required tables (Phase 4 wiring uses these; defined now so the
+// schema doesn't need a breaking migration later)
+// ─────────────────────────────────────────────────────────────────────────
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String  @map("user_id")
+  type              String
+  provider          String
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Core domain models
+// ─────────────────────────────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime? @map("email_verified")
+  name          String?
+  image         String?
+  passwordHash  String?   @map("password_hash") // null for OAuth-only accounts
+  role          Role      @default(USER)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  accounts       Account[]
+  sessions       Session[]
+  payrollProfile PayrollProfile?
+  salaryEntries  SalaryEntry[]
+  savingsPlans   SavingsPlan[]
+  auditLogs      AuditLog[]
+  configsCreated PayrollConfiguration[] @relation("ConfigCreatedBy")
+
+  @@map("users")
+}
+
+model PayrollProfile {
+  id     String @id @default(cuid())
+  userId String @unique @map("user_id")
+
+  citizenshipStatus CitizenshipStatus @default(CITIZEN) @map("citizenship_status")
+  isBelow60         Boolean           @default(true) @map("is_below_60")
+  residencyStatus   ResidencyStatus   @default(RESIDENT) @map("residency_status")
+  maritalStatus     MaritalStatus     @default(MARRIED) @map("marital_status")
+  spouseHasIncome   Boolean           @default(false) @map("spouse_has_income")
+  numberOfChildren  Int               @default(4) @map("number_of_children")
+  // Array of { belowAge18: boolean, reliefPercentageClaimed: number } — flexible per-child
+  // relief split with spouse; normalize into a dedicated Child model post-Phase-1 if needed.
+  childReliefClaims      Json    @default("[]") @map("child_relief_claims")
+  epfEmployeeRatePercent Decimal @default(11.000) @db.Decimal(6, 3) @map("epf_employee_rate_percent")
+  lindung24JamOptIn      Boolean @default(false) @map("lindung_24_jam_opt_in")
+  zakatEnabled           Boolean @default(false) @map("zakat_enabled")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payroll_profiles")
+}
+
+model SalaryEntry {
+  id     String @id @default(cuid())
+  userId String @map("user_id")
+
+  payrollMonth DateTime @map("payroll_month") @db.Date // stored as the 1st of the month
+
+  basicSalary                 Decimal                      @default(0) @db.Decimal(12, 2) @map("basic_salary")
+  fixedAllowance               Decimal                      @default(0) @db.Decimal(12, 2) @map("fixed_allowance")
+  weekendSupportAllowance       Decimal                      @default(0) @db.Decimal(12, 2) @map("weekend_support_allowance")
+  weekendSupportPaymentMethod  WeekendSupportPaymentMethod? @map("weekend_support_payment_method")
+  weekendSupportDaysCount       Int?                         @map("weekend_support_days_count")
+  weekendSupportRatePerDay      Decimal?                     @db.Decimal(12, 2) @map("weekend_support_rate_per_day")
+  bonus                         Decimal                      @default(0) @db.Decimal(12, 2)
+  commission                    Decimal                      @default(0) @db.Decimal(12, 2)
+  otherTaxableIncome             Decimal                      @default(0) @db.Decimal(12, 2) @map("other_taxable_income")
+  otherNonTaxableReimbursement   Decimal                      @default(0) @db.Decimal(12, 2) @map("other_non_taxable_reimbursement")
+  epfAdjustment                  Decimal                      @default(0) @db.Decimal(12, 2) @map("epf_adjustment")
+  zakat                          Decimal                      @default(0) @db.Decimal(12, 2)
+  previousCumulativeIncomeForYear Decimal                     @default(0) @db.Decimal(14, 2) @map("previous_cumulative_income_for_year")
+  previousCumulativePcbPaid       Decimal                     @default(0) @db.Decimal(14, 2) @map("previous_cumulative_pcb_paid")
+  notes                           String?                     @db.Text
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  calculations SalaryCalculation[]
+  savingsPlans SavingsPlan[]
+
+  @@index([userId, payrollMonth])
+  @@map("salary_entries")
+}
+
+model SalaryCalculation {
+  id                      String @id @default(cuid())
+  salaryEntryId           String @map("salary_entry_id")
+  payrollConfigurationId  String @map("payroll_configuration_id")
+
+  grossSalary                  Decimal @db.Decimal(12, 2) @map("gross_salary")
+  epfEmployee                  Decimal @db.Decimal(12, 2) @map("epf_employee")
+  socsoEmployee                 Decimal @db.Decimal(12, 2) @map("socso_employee")
+  eisEmployee                   Decimal @db.Decimal(12, 2) @map("eis_employee")
+  pcb                            Decimal @db.Decimal(12, 2)
+  zakat                          Decimal @db.Decimal(12, 2)
+  otherDeductions                 Decimal @db.Decimal(12, 2) @map("other_deductions")
+  totalDeductions                 Decimal @db.Decimal(12, 2) @map("total_deductions")
+  netSalary                       Decimal @db.Decimal(12, 2) @map("net_salary")
+  netWeekendSupportIncome          Decimal @db.Decimal(12, 2) @map("net_weekend_support_income")
+  effectiveDeductionRatePercent    Decimal @db.Decimal(6, 3) @map("effective_deduction_rate_percent")
+  effectiveTakeHomePercent         Decimal @db.Decimal(6, 3) @map("effective_take_home_percent")
+
+  isCurrent    Boolean  @default(true) @map("is_current") // false when superseded by a recalculation
+  calculatedAt DateTime @default(now()) @map("calculated_at")
+
+  salaryEntry          SalaryEntry          @relation(fields: [salaryEntryId], references: [id], onDelete: Cascade)
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Restrict)
+  deductionBreakdowns  DeductionBreakdown[]
+
+  @@index([salaryEntryId, isCurrent])
+  @@map("salary_calculations")
+}
+
+model DeductionBreakdown {
+  id                  String            @id @default(cuid())
+  salaryCalculationId String            @map("salary_calculation_id")
+  category            DeductionCategory
+  label               String
+  amount              Decimal           @db.Decimal(12, 2)
+  notes               String?           @db.Text
+
+  salaryCalculation SalaryCalculation @relation(fields: [salaryCalculationId], references: [id], onDelete: Cascade)
+
+  @@map("deduction_breakdowns")
+}
+
+model SavingsPlan {
+  id                       String   @id @default(cuid())
+  userId                   String   @map("user_id")
+  salaryEntryId            String?  @map("salary_entry_id")
+  name                     String
+  effectiveMonth           DateTime @map("effective_month") @db.Date
+  saveAllNetWeekendSupport Boolean  @default(false) @map("save_all_net_weekend_support")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  salaryEntry SalaryEntry?        @relation(fields: [salaryEntryId], references: [id], onDelete: SetNull)
+  allocations SavingsAllocation[]
+
+  @@index([userId, effectiveMonth])
+  @@map("savings_plans")
+}
+
+model SavingsAllocation {
+  id             String          @id @default(cuid())
+  savingsPlanId  String          @map("savings_plan_id")
+  category       SavingsCategory
+  allocationType AllocationType  @map("allocation_type")
+  amount         Decimal?        @db.Decimal(12, 2) // used when allocationType = FIXED_AMOUNT
+  percentage     Decimal?        @db.Decimal(5, 2) // used when allocationType = PERCENTAGE
+  computedAmount Decimal?        @db.Decimal(12, 2) @map("computed_amount")
+  notes          String?         @db.Text
+
+  savingsPlan SavingsPlan @relation(fields: [savingsPlanId], references: [id], onDelete: Cascade)
+
+  @@map("savings_allocations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Versioned statutory configuration ("PayrollConfiguration family")
+// ─────────────────────────────────────────────────────────────────────────
+
+model PayrollConfiguration {
+  id              String    @id @default(cuid())
+  version         String    @unique // e.g. "2026.1"
+  label           String
+  effectiveFrom   DateTime  @map("effective_from") @db.Date
+  effectiveTo     DateTime? @map("effective_to") @db.Date
+  isActive        Boolean   @default(true) @map("is_active")
+  sourceReference String    @db.Text @map("source_reference") // KWSP/PERKESO/LHDN doc URL or citation
+  notes           String?   @db.Text
+
+  createdById String   @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  createdBy    User                @relation("ConfigCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  calculations SalaryCalculation[]
+  epfRates     EPFRate[]
+  epfWageBands EPFWageBand[]
+  socsoRates   SOCSORate[]
+  eisRates     EISRate[]
+  taxBrackets  TaxBracket[]
+  taxReliefs   TaxRelief[]
+  taxRebates   TaxRebate[]
+
+  @@index([effectiveFrom, effectiveTo])
+  @@map("payroll_configurations")
+}
+
+model EPFRate {
+  id                     String            @id @default(cuid())
+  payrollConfigurationId String            @map("payroll_configuration_id")
+  citizenshipStatus      CitizenshipStatus @map("citizenship_status")
+  minAge                 Int?              @map("min_age")
+  maxAge                 Int?              @map("max_age")
+  employeeRatePercent    Decimal           @db.Decimal(6, 3) @map("employee_rate_percent")
+  employerRatePercent    Decimal           @db.Decimal(6, 3) @map("employer_rate_percent")
+  notes                  String?           @db.Text
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("epf_rates")
+}
+
+model EPFWageBand {
+  id                     String   @id @default(cuid())
+  payrollConfigurationId String   @map("payroll_configuration_id")
+  wageFrom               Decimal  @db.Decimal(12, 2) @map("wage_from")
+  wageTo                 Decimal? @db.Decimal(12, 2) @map("wage_to")
+  employeeContribution   Decimal  @db.Decimal(12, 2) @map("employee_contribution")
+  employerContribution   Decimal  @db.Decimal(12, 2) @map("employer_contribution")
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("epf_wage_bands")
+}
+
+model SOCSORate {
+  id                     String        @id @default(cuid())
+  payrollConfigurationId String        @map("payroll_configuration_id")
+  category               SocsoCategory
+  wageFrom               Decimal       @db.Decimal(12, 2) @map("wage_from")
+  wageTo                 Decimal?      @db.Decimal(12, 2) @map("wage_to")
+  employeeContribution   Decimal       @db.Decimal(12, 2) @map("employee_contribution")
+  employerContribution   Decimal       @db.Decimal(12, 2) @map("employer_contribution")
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("socso_rates")
+}
+
+model EISRate {
+  id                     String   @id @default(cuid())
+  payrollConfigurationId String   @map("payroll_configuration_id")
+  wageFrom               Decimal  @db.Decimal(12, 2) @map("wage_from")
+  wageTo                 Decimal? @db.Decimal(12, 2) @map("wage_to")
+  employeeContribution   Decimal  @db.Decimal(12, 2) @map("employee_contribution")
+  employerContribution   Decimal  @db.Decimal(12, 2) @map("employer_contribution")
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("eis_rates")
+}
+
+model TaxBracket {
+  id                     String          @id @default(cuid())
+  payrollConfigurationId String          @map("payroll_configuration_id")
+  residencyStatus        ResidencyStatus
+  chargeableIncomeFrom   Decimal         @db.Decimal(14, 2) @map("chargeable_income_from")
+  chargeableIncomeTo     Decimal?        @db.Decimal(14, 2) @map("chargeable_income_to")
+  ratePercent            Decimal         @db.Decimal(6, 3) @map("rate_percent")
+  cumulativeTaxBase      Decimal         @db.Decimal(14, 2) @map("cumulative_tax_base") // tax payable on all lower brackets
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("tax_brackets")
+}
+
+model TaxRelief {
+  id                     String  @id @default(cuid())
+  payrollConfigurationId String  @map("payroll_configuration_id")
+  code                    String // e.g. "SELF", "SPOUSE", "CHILD_BELOW_18", "EPF_LIFE_INSURANCE"
+  label                   String
+  maxAmount               Decimal @db.Decimal(12, 2) @map("max_amount")
+  description             String? @db.Text
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("tax_reliefs")
+}
+
+model TaxRebate {
+  id                     String   @id @default(cuid())
+  payrollConfigurationId String   @map("payroll_configuration_id")
+  code                    String  // e.g. "CHARGEABLE_INCOME_BELOW_35000", "ZAKAT_REBATE"
+  label                   String
+  amount                  Decimal? @db.Decimal(12, 2)
+  incomeThreshold         Decimal? @db.Decimal(14, 2) @map("income_threshold")
+  description             String?  @db.Text
+
+  payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
+
+  @@map("tax_rebates")
+}
+
+model AuditLog {
+  id          String      @id @default(cuid())
+  userId      String?     @map("user_id")
+  action      AuditAction
+  entityType  String      @map("entity_type")
+  entityId    String?     @map("entity_id")
+  changesJson Json?       @map("changes_json")
+  ipAddress   String?     @map("ip_address")
+  userAgent   String?     @db.Text @map("user_agent")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
