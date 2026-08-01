@@ -29,12 +29,15 @@ import { Input } from "@/components/ui/input";
 import { NumberField } from "@/components/calculator/number-field";
 import { WeekendSupportFields } from "@/components/calculator/weekend-support-fields";
 import { ResultsPanel } from "@/components/calculator/results-panel";
+import { SavingsPlanner } from "@/components/calculator/savings-planner";
+import { Dashboard } from "@/components/dashboard/dashboard";
 import {
   salaryEntryFormSchema,
   type SalaryEntryFormValues,
 } from "@/components/calculator/schema";
 import { calculateSalaryAction } from "@/app/actions";
 import type { SalaryCalculationViewModel } from "@/components/calculator/to-view-model";
+import type { SavingsPlanSummaryViewModel } from "@/components/calculator/savings-planner-summary";
 
 function defaultPayrollMonth(): string {
   // Defaults to January of the current year, not "today" — the cumulative
@@ -49,6 +52,8 @@ function defaultPayrollMonth(): string {
 export function SalaryEntryForm() {
   const [result, setResult] = useState<SalaryCalculationViewModel | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [savingsSummary, setSavingsSummary] =
+    useState<SavingsPlanSummaryViewModel | null>(null);
 
   const form = useForm<SalaryEntryFormValues>({
     resolver: zodResolver(salaryEntryFormSchema),
@@ -86,135 +91,144 @@ export function SalaryEntryForm() {
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 md:items-start">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Salary entry</CardTitle>
-              <CardDescription>
-                Calculated using the default profile — married, 4 children (100%
-                relief), EPF 11%, tax resident. Profile editing arrives in a
-                later phase.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              <FormField
-                control={form.control}
-                name="payrollMonth"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payroll month</FormLabel>
-                    <FormControl>
-                      <Input type="month" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <NumberField
-                name="basicSalary"
-                label="Basic salary (RM)"
-                tooltip="Your fixed monthly base pay before allowances, bonus, or weekend support."
-              />
-
-              <WeekendSupportFields />
-
-              {serverError ? (
-                <p className="text-destructive text-sm">{serverError}</p>
-              ) : null}
-
-              <Button
-                type="submit"
-                disabled={form.formState.isSubmitting}
-                className="w-full"
-              >
-                {form.formState.isSubmitting ? "Calculating…" : "Calculate"}
-              </Button>
-            </CardContent>
-          </Card>
-
-          <Collapsible>
+    <div className="grid gap-6">
+      <div className="grid gap-6 md:grid-cols-2 md:items-start">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <Card>
-              <CollapsibleTrigger asChild>
-                <CardHeader className="cursor-pointer select-none">
-                  <CardTitle className="text-base">
-                    Additional income &amp; deductions
-                  </CardTitle>
-                  <CardDescription>
-                    Optional — expand to refine your estimate.
-                  </CardDescription>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="grid gap-4 sm:grid-cols-2">
-                  <NumberField
-                    name="fixedAllowance"
-                    label="Fixed allowance (RM)"
-                  />
-                  <NumberField
-                    name="bonus"
-                    label="Bonus (RM)"
-                    tooltip="Additional remuneration such as a bonus — taxed via a separate lump-sum PCB estimate."
-                  />
-                  <NumberField name="commission" label="Commission (RM)" />
-                  <NumberField
-                    name="otherTaxableIncome"
-                    label="Other taxable income (RM)"
-                  />
-                  <NumberField
-                    name="otherNonTaxableReimbursement"
-                    label="Other non-taxable reimbursement (RM)"
-                  />
-                  <NumberField
-                    name="epfAdjustment"
-                    label="Employee EPF adjustment (RM)"
-                    allowNegative
-                  />
-                  <NumberField name="zakat" label="Zakat (RM)" />
-                  <NumberField
-                    name="previousCumulativeIncomeForYear"
-                    label="Previous cumulative income this year (RM)"
-                  />
-                  <NumberField
-                    name="previousCumulativePcbPaid"
-                    label="Previous cumulative PCB paid (RM)"
-                  />
-                  <div className="sm:col-span-2">
-                    <FormField
-                      control={form.control}
-                      name="notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Notes</FormLabel>
-                          <FormControl>
-                            <Textarea rows={3} {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
-        </form>
-      </Form>
+              <CardHeader>
+                <CardTitle>Salary entry</CardTitle>
+                <CardDescription>
+                  Calculated using the default profile — married, 4 children
+                  (100% relief), EPF 11%, tax resident. Profile editing arrives
+                  in a later phase.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <FormField
+                  control={form.control}
+                  name="payrollMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payroll month</FormLabel>
+                      <FormControl>
+                        <Input type="month" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-      <div className="md:sticky md:top-6">
-        {result ? (
-          <ResultsPanel data={result} />
-        ) : (
-          <Card>
-            <CardContent className="text-muted-foreground py-10 text-center text-sm">
-              Enter your basic salary and click Calculate to see your net salary
-              breakdown.
-            </CardContent>
-          </Card>
-        )}
+                <NumberField
+                  name="basicSalary"
+                  label="Basic salary (RM)"
+                  tooltip="Your fixed monthly base pay before allowances, bonus, or weekend support."
+                />
+
+                <WeekendSupportFields />
+
+                {serverError ? (
+                  <p className="text-destructive text-sm">{serverError}</p>
+                ) : null}
+
+                <Button
+                  type="submit"
+                  disabled={form.formState.isSubmitting}
+                  className="w-full"
+                >
+                  {form.formState.isSubmitting ? "Calculating…" : "Calculate"}
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Collapsible>
+              <Card>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="cursor-pointer select-none">
+                    <CardTitle className="text-base">
+                      Additional income &amp; deductions
+                    </CardTitle>
+                    <CardDescription>
+                      Optional — expand to refine your estimate.
+                    </CardDescription>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="grid gap-4 sm:grid-cols-2">
+                    <NumberField
+                      name="fixedAllowance"
+                      label="Fixed allowance (RM)"
+                    />
+                    <NumberField
+                      name="bonus"
+                      label="Bonus (RM)"
+                      tooltip="Additional remuneration such as a bonus — taxed via a separate lump-sum PCB estimate."
+                    />
+                    <NumberField name="commission" label="Commission (RM)" />
+                    <NumberField
+                      name="otherTaxableIncome"
+                      label="Other taxable income (RM)"
+                    />
+                    <NumberField
+                      name="otherNonTaxableReimbursement"
+                      label="Other non-taxable reimbursement (RM)"
+                    />
+                    <NumberField
+                      name="epfAdjustment"
+                      label="Employee EPF adjustment (RM)"
+                      allowNegative
+                    />
+                    <NumberField name="zakat" label="Zakat (RM)" />
+                    <NumberField
+                      name="previousCumulativeIncomeForYear"
+                      label="Previous cumulative income this year (RM)"
+                    />
+                    <NumberField
+                      name="previousCumulativePcbPaid"
+                      label="Previous cumulative PCB paid (RM)"
+                    />
+                    <div className="sm:col-span-2">
+                      <FormField
+                        control={form.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Notes</FormLabel>
+                            <FormControl>
+                              <Textarea rows={3} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  </CardContent>
+                </CollapsibleContent>
+              </Card>
+            </Collapsible>
+          </form>
+        </Form>
+
+        <div className="md:sticky md:top-6">
+          {result ? (
+            <ResultsPanel data={result} />
+          ) : (
+            <Card>
+              <CardContent className="text-muted-foreground py-10 text-center text-sm">
+                Enter your basic salary and click Calculate to see your net
+                salary breakdown.
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
+
+      {result ? (
+        <>
+          <SavingsPlanner result={result} onSummaryChange={setSavingsSummary} />
+          <Dashboard result={result} savingsSummary={savingsSummary} />
+        </>
+      ) : null}
     </div>
   );
 }
