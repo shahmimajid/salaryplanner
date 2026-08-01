@@ -38,6 +38,9 @@ import {
 import { calculateSalaryAction } from "@/app/actions";
 import type { SalaryCalculationViewModel } from "@/components/calculator/to-view-model";
 import type { SavingsPlanSummaryViewModel } from "@/components/calculator/savings-planner-summary";
+import type { SavingsPlannerFormValues } from "@/components/calculator/savings-schema";
+import type { SavingsPlannerProps } from "@/components/calculator/savings-planner";
+import { saveDraft, type DraftSalaryEntry } from "@/lib/offline/db";
 
 // Superset of both calculateSalaryAction's (local-mode) and
 // saveSalaryEntry's (authenticated) return shapes — salaryEntryId is only
@@ -47,6 +50,16 @@ import type { SavingsPlanSummaryViewModel } from "@/components/calculator/saving
 export type SalaryFormActionResult =
   | { ok: true; data: SalaryCalculationViewModel; salaryEntryId?: string }
   | { ok: false; fieldErrors: Record<string, string[] | undefined> };
+
+function buildDraft(userId: string, values: SalaryEntryFormValues): DraftSalaryEntry {
+  return {
+    localId: crypto.randomUUID(),
+    userId,
+    values,
+    createdAt: Date.now(),
+    status: "pending",
+  };
+}
 
 function defaultPayrollMonth(): string {
   // Defaults to January of the current year, not "today" — the cumulative
@@ -65,16 +78,35 @@ export interface SalaryEntryFormProps {
   profileNote?: React.ReactNode;
   /** Rendered above the results panel when the action returns a salaryEntryId (i.e. it persisted). */
   renderSavedNotice?: (salaryEntryId: string) => React.ReactNode;
+  /** Pre-fills the form (edit) or seeds a new entry from a prior one (duplicate). */
+  initialValues?: Partial<SalaryEntryFormValues>;
+  /** True only for edit — locks the month so a resubmit collapses onto the same entry, never a different one. */
+  payrollMonthLocked?: boolean;
+  /** Passed straight through to SavingsPlanner; omitted in local mode. */
+  savingsPlanAction?: SavingsPlannerProps["action"];
+  /** Passed straight through to SavingsPlanner, for edit/duplicate. */
+  savingsPlanInitialValues?: SavingsPlannerFormValues;
+  /** True only on /dashboard — offline drafts are only meaningful for the persisting flow. */
+  offlineCapable?: boolean;
+  /** Required when offlineCapable is true, to scope the saved draft to this user. */
+  userId?: string;
 }
 
 export function SalaryEntryForm({
   action = calculateSalaryAction,
   profileNote,
   renderSavedNotice,
+  initialValues,
+  payrollMonthLocked = false,
+  savingsPlanAction,
+  savingsPlanInitialValues,
+  offlineCapable = false,
+  userId,
 }: SalaryEntryFormProps = {}) {
   const [result, setResult] = useState<SalaryCalculationViewModel | null>(null);
   const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
+  const [savedOffline, setSavedOffline] = useState(false);
   const [savingsSummary, setSavingsSummary] =
     useState<SavingsPlanSummaryViewModel | null>(null);
 
@@ -93,11 +125,23 @@ export function SalaryEntryForm({
       zakat: 0,
       previousCumulativeIncomeForYear: 0,
       previousCumulativePcbPaid: 0,
+      ...initialValues,
     },
   });
 
   async function onSubmit(values: SalaryEntryFormValues) {
     setServerError(null);
+    setSavedOffline(false);
+
+    if (offlineCapable && userId && typeof navigator !== "undefined" && !navigator.onLine) {
+      // No computed result to show offline — the calculation engine only
+      // runs server-side. The draft just captures the input; ResultsPanel/
+      // SavingsPlanner/Dashboard only appear once it's synced.
+      await saveDraft(buildDraft(userId, values));
+      setSavedOffline(true);
+      return;
+    }
+
     const response = await action(values);
     if (!response.ok) {
       setServerError("Please check the highlighted fields and try again.");
@@ -140,8 +184,14 @@ export function SalaryEntryForm({
                     <FormItem>
                       <FormLabel>Payroll month</FormLabel>
                       <FormControl>
-                        <Input type="month" {...field} />
+                        <Input type="month" disabled={payrollMonthLocked} {...field} />
                       </FormControl>
+                      {payrollMonthLocked ? (
+                        <p className="text-muted-foreground text-xs">
+                          Locked while editing — the saved entry for this month is
+                          updated in place.
+                        </p>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -243,6 +293,12 @@ export function SalaryEntryForm({
               {savedEntryId && renderSavedNotice ? renderSavedNotice(savedEntryId) : null}
               <ResultsPanel data={result} />
             </>
+          ) : savedOffline ? (
+            <Card>
+              <CardContent className="py-10 text-center text-sm">
+                Saved offline — will sync automatically when you&apos;re back online.
+              </CardContent>
+            </Card>
           ) : (
             <Card>
               <CardContent className="text-muted-foreground py-10 text-center text-sm">
@@ -256,7 +312,13 @@ export function SalaryEntryForm({
 
       {result ? (
         <>
-          <SavingsPlanner result={result} onSummaryChange={setSavingsSummary} />
+          <SavingsPlanner
+            result={result}
+            onSummaryChange={setSavingsSummary}
+            salaryEntryId={savedEntryId ?? undefined}
+            action={savingsPlanAction}
+            initialValues={savingsPlanInitialValues}
+          />
           <Dashboard result={result} savingsSummary={savingsSummary} />
         </>
       ) : null}

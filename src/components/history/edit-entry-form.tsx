@@ -6,34 +6,28 @@ import { saveSalaryEntryAction, saveSavingsPlanAction } from "@/app/dashboard/ac
 import type { SalaryEntryFormValues } from "@/components/calculator/schema";
 import type { SavingsPlannerFormValues } from "@/components/calculator/savings-schema";
 
-export function DashboardForm({
+export function EditEntryForm({
+  salaryEntryId,
   initialValues,
   savingsPlanInitialValues,
-  userId,
 }: {
-  initialValues?: Partial<SalaryEntryFormValues>;
-  savingsPlanInitialValues?: SavingsPlannerFormValues;
-  userId: string;
+  salaryEntryId: string;
+  initialValues: SalaryEntryFormValues;
+  savingsPlanInitialValues: SavingsPlannerFormValues | null;
 }) {
   return (
     <SalaryEntryForm
       action={saveSalaryEntryAction}
       savingsPlanAction={saveSavingsPlanAction}
       initialValues={initialValues}
-      savingsPlanInitialValues={savingsPlanInitialValues}
-      offlineCapable
-      userId={userId}
-      profileNote={
-        <>
-          Calculated and saved using your profile — married, 4 children (100% relief),
-          EPF 11%, tax resident. Profile editing arrives in a later phase.
-        </>
-      }
-      renderSavedNotice={(salaryEntryId) => (
+      savingsPlanInitialValues={savingsPlanInitialValues ?? undefined}
+      payrollMonthLocked
+      profileNote={<>Editing the saved calculation for {initialValues.payrollMonth}.</>}
+      renderSavedNotice={() => (
         <div className="bg-muted/30 rounded-lg border p-3 text-sm">
-          Saved for this month.{" "}
+          Saved.{" "}
           <Link href={`/history/${salaryEntryId}`} className="font-medium underline">
-            View in history
+            Back to this calculation
           </Link>
         </div>
       )}

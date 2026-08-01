@@ -1,5 +1,8 @@
-# Phase 4: real deployment artifact, built and run via docker-compose's
-# `app`/`migrate` services (profile "full") — see docker-compose.yml.
+# Real deployment artifact, built and run via docker-compose's `app`/
+# `migrate` services (profile "full") — see docker-compose.yml. The
+# service worker (src/sw.ts) is bundled by esbuild during `pnpm build`
+# (Serwist's Turbopack integration) and served as a prerendered Route
+# Handler under .next/standalone — no extra copy step needed here.
 
 FROM node:24-alpine AS base
 RUN corepack enable

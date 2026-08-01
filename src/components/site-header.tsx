@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth/auth";
-import { signOutAction } from "@/lib/auth/actions";
 import { Button } from "@/components/ui/button";
+import { InstallPromptButton } from "@/components/pwa/install-prompt-button";
+import { SignOutClearOfflineForm } from "@/components/pwa/sign-out-clear-offline-form";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -13,6 +14,7 @@ export async function SiteHeader() {
           My Net Salary Planner
         </Link>
         <nav className="flex items-center gap-4 text-sm">
+          <InstallPromptButton />
           {session?.user ? (
             <>
               <span className="text-muted-foreground hidden sm:inline">
@@ -24,11 +26,7 @@ export async function SiteHeader() {
               <Link href="/history" className="underline">
                 History
               </Link>
-              <form action={signOutAction}>
-                <Button type="submit" variant="outline" size="sm">
-                  Sign out
-                </Button>
-              </form>
+              <SignOutClearOfflineForm userId={session.user.id} />
             </>
           ) : (
             <>

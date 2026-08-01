@@ -24,9 +24,8 @@ export function Dashboard({
       <CardHeader>
         <CardTitle>Dashboard</CardTitle>
         <CardDescription>
-          Based on this month&apos;s calculation only — trend, history, and
-          annual-total charts need saved calculations across multiple months,
-          which this local-mode version doesn&apos;t have yet.
+          Based on this calculation only. Signed-in users see trend and annual
+          charts across every saved month on the Dashboard and History pages.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid gap-6">
