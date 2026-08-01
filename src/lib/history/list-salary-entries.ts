@@ -39,3 +39,22 @@ export async function listSalaryEntries(userId: string): Promise<SalaryEntrySumm
       calculatedAt: entry.calculations[0].calculatedAt,
     }));
 }
+
+/**
+ * In-memory filter/year-list over an already-fetched list — deliberate
+ * simplification since per-user history is small (bounded by
+ * months-since-signup), avoiding a second DB round-trip or a raw
+ * EXTRACT(YEAR ...) query filter. Revisit if entry counts ever grow large
+ * enough for that tradeoff to matter.
+ */
+export function filterEntriesByYear(
+  entries: SalaryEntrySummary[],
+  year: number,
+): SalaryEntrySummary[] {
+  return entries.filter((entry) => entry.payrollMonth.startsWith(`${year}-`));
+}
+
+export function listAvailableYears(entries: SalaryEntrySummary[]): number[] {
+  const years = new Set(entries.map((entry) => Number(entry.payrollMonth.slice(0, 4))));
+  return [...years].sort((a, b) => b - a);
+}

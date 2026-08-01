@@ -29,6 +29,16 @@ export const savingsPlannerFormSchema = z.object({
 
 export type SavingsPlannerFormValues = z.infer<typeof savingsPlannerFormSchema>;
 
+// Same shape as savingsPlannerFormSchema plus the target SalaryEntry — the
+// server action's own validation boundary, kept distinct from the form
+// schema since the form never collects/sends salaryEntryId itself (it's
+// threaded in separately from SalaryEntryForm's own saved-entry state).
+export const savingsPlanPersistSchema = savingsPlannerFormSchema.extend({
+  salaryEntryId: z.string().min(1),
+});
+
+export type SavingsPlanPersistInput = z.infer<typeof savingsPlanPersistSchema>;
+
 export function defaultSavingsPlannerValues(): SavingsPlannerFormValues {
   return {
     saveAllNetWeekendSupport: false,
