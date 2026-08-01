@@ -15,19 +15,23 @@ async function signUp(page: Page): Promise<string> {
   return email;
 }
 
-// Playwright's .fill() is unreliable on this react-hook-form-controlled
-// input[type=month] when navigating back to /dashboard a second time in
-// the same test — it silently leaves the field at its previous/default
-// value. Setting via the native value setter + dispatching input/change
-// (the standard trick for React-controlled inputs) is reliable here.
+// Both .fill() and a native-setter + dispatchEvent trick are unreliable on
+// this react-hook-form-controlled input[type=month] right after
+// navigation: under load (2 CI workers) a hydration-driven re-render can
+// land after the set and stomp the DOM value back to react-hook-form's
+// still-default state — inconsistently, not deterministically. Retrying
+// the whole set+assert via toPass() rides out the race instead of hoping
+// to win it on the first attempt.
 async function fillMonth(page: Page, month: string) {
-  await page.locator('input[name="payrollMonth"]').evaluate((el: HTMLInputElement, value: string) => {
-    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
-    setter.call(el, value);
-    el.dispatchEvent(new Event("input", { bubbles: true }));
-    el.dispatchEvent(new Event("change", { bubbles: true }));
-  }, month);
-  await expect(page.locator('input[name="payrollMonth"]')).toHaveValue(month);
+  await expect(async () => {
+    await page.locator('input[name="payrollMonth"]').evaluate((el: HTMLInputElement, value: string) => {
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value")!.set!;
+      setter.call(el, value);
+      el.dispatchEvent(new Event("input", { bubbles: true }));
+      el.dispatchEvent(new Event("change", { bubbles: true }));
+    }, month);
+    await expect(page.locator('input[name="payrollMonth"]')).toHaveValue(month, { timeout: 500 });
+  }).toPass({ timeout: 10000 });
 }
 
 async function saveEntry(page: Page, month: string, basicSalary: string) {
