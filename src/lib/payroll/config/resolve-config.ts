@@ -20,47 +20,24 @@ function toMoneyOrNull(value: Prisma.Decimal | null): Money | null {
   return value === null ? null : toMoney(value);
 }
 
-/**
- * Loads the single active PayrollConfiguration (and its rate/bracket/relief/
- * rebate rows) whose effective range covers the given date, and flattens it
- * into a PayrollConfigSnapshot.
- */
-export async function resolveConfig(
-  input: ResolveConfigInput,
-): Promise<PayrollConfigSnapshot> {
-  const date = new Date(input.effectiveDate);
+const CONFIG_INCLUDE = {
+  epfRates: true,
+  epfWageBands: true,
+  socsoRates: true,
+  eisRates: true,
+  taxBrackets: true,
+  taxReliefs: true,
+  taxRebates: true,
+} satisfies Prisma.PayrollConfigurationInclude;
 
-  const config = await prisma.payrollConfiguration.findFirst({
-    where: {
-      isActive: true,
-      effectiveFrom: { lte: date },
-      OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
-    },
-    // Latest applicable version wins if ranges ever overlap (docs/assumptions.md #13).
-    orderBy: { effectiveFrom: "desc" },
-    include: {
-      epfRates: true,
-      epfWageBands: true,
-      socsoRates: true,
-      eisRates: true,
-      taxBrackets: true,
-      taxReliefs: true,
-      taxRebates: true,
-    },
-  });
+type ConfigWithRates = Prisma.PayrollConfigurationGetPayload<{ include: typeof CONFIG_INCLUDE }>;
 
-  if (!config) {
-    throw new Error(
-      `No active payroll configuration found for effective date ${input.effectiveDate}.`,
-    );
-  }
-
+function mapConfigToSnapshot(config: ConfigWithRates): PayrollConfigSnapshot {
   return {
+    id: config.id,
     version: config.version,
     effectiveFrom: config.effectiveFrom.toISOString().slice(0, 10),
-    effectiveTo: config.effectiveTo
-      ? config.effectiveTo.toISOString().slice(0, 10)
-      : null,
+    effectiveTo: config.effectiveTo ? config.effectiveTo.toISOString().slice(0, 10) : null,
     epfRates: config.epfRates.map((r) => ({
       citizenshipStatus: r.citizenshipStatus,
       minAge: r.minAge,
@@ -104,4 +81,50 @@ export async function resolveConfig(
       incomeThreshold: toMoneyOrNull(r.incomeThreshold),
     })),
   };
+}
+
+/**
+ * Loads the single active PayrollConfiguration (and its rate/bracket/relief/
+ * rebate rows) whose effective range covers the given date, and flattens it
+ * into a PayrollConfigSnapshot.
+ */
+export async function resolveConfig(input: ResolveConfigInput): Promise<PayrollConfigSnapshot> {
+  const date = new Date(input.effectiveDate);
+
+  const config = await prisma.payrollConfiguration.findFirst({
+    where: {
+      isActive: true,
+      effectiveFrom: { lte: date },
+      OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
+    },
+    // Latest applicable version wins if ranges ever overlap (docs/assumptions.md #13).
+    orderBy: { effectiveFrom: "desc" },
+    include: CONFIG_INCLUDE,
+  });
+
+  if (!config) {
+    throw new Error(`No active payroll configuration found for effective date ${input.effectiveDate}.`);
+  }
+
+  return mapConfigToSnapshot(config);
+}
+
+/**
+ * Loads a specific PayrollConfiguration by id, regardless of whether it's
+ * still active — used to recompute a historical calculation against the
+ * exact configuration version it originally used (docs/architecture.md's
+ * versioned-configuration guarantee), not whatever a date-based lookup
+ * would currently resolve to.
+ */
+export async function resolveConfigById(id: string): Promise<PayrollConfigSnapshot> {
+  const config = await prisma.payrollConfiguration.findUnique({
+    where: { id },
+    include: CONFIG_INCLUDE,
+  });
+
+  if (!config) {
+    throw new Error(`No payroll configuration found with id ${id}.`);
+  }
+
+  return mapConfigToSnapshot(config);
 }

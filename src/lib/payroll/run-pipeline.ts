@@ -57,6 +57,20 @@ export interface SalaryPipelineResult {
   netSalary: NetSalaryResult;
 }
 
+/**
+ * zakat isn't carried on SalaryPipelineResult directly; it's the only
+ * unaccounted-for term in totalDeductions = epf+socso+eis+pcb+zakat+0.
+ * Shared by to-view-model.ts (presentation) and save-salary-entry.ts
+ * (persistence) so the two never derive it inconsistently.
+ */
+export function deriveZakat(result: SalaryPipelineResult): Money {
+  return result.netSalary.totalDeductions
+    .minus(result.epf.employeeContribution)
+    .minus(result.socso.employeeContribution)
+    .minus(result.eis.employeeContribution)
+    .minus(result.pcb.currentMonthPcb);
+}
+
 export function runSalaryPipeline(
   input: SalaryPipelineInput,
 ): SalaryPipelineResult {

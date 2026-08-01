@@ -35,6 +35,9 @@ export type AllocationType = "FIXED_AMOUNT" | "PERCENTAGE";
  * PayrollConfiguration relational tables (or directly from the seed JSON).
  */
 export interface PayrollConfigSnapshot {
+  // Only set when resolved from the database (resolveConfig/resolveConfigById)
+  // — local mode's snapshot (load-local-config.ts) has no DB row to point to.
+  id?: string;
   version: string;
   effectiveFrom: string; // ISO date
   effectiveTo: string | null;

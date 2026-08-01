@@ -39,6 +39,15 @@ import { calculateSalaryAction } from "@/app/actions";
 import type { SalaryCalculationViewModel } from "@/components/calculator/to-view-model";
 import type { SavingsPlanSummaryViewModel } from "@/components/calculator/savings-planner-summary";
 
+// Superset of both calculateSalaryAction's (local-mode) and
+// saveSalaryEntry's (authenticated) return shapes — salaryEntryId is only
+// present for the persisting action, used to link to the saved history
+// entry. A function returning either narrower shape is structurally
+// assignable here (missing optional fields are fine).
+export type SalaryFormActionResult =
+  | { ok: true; data: SalaryCalculationViewModel; salaryEntryId?: string }
+  | { ok: false; fieldErrors: Record<string, string[] | undefined> };
+
 function defaultPayrollMonth(): string {
   // Defaults to January of the current year, not "today" — the cumulative
   // PCB reconciliation assumes "previous cumulative income/PCB" fields (in
@@ -49,8 +58,22 @@ function defaultPayrollMonth(): string {
   return `${new Date().getFullYear()}-01`;
 }
 
-export function SalaryEntryForm() {
+export interface SalaryEntryFormProps {
+  /** Defaults to the local-mode calculateSalaryAction (no persistence). */
+  action?: (values: SalaryEntryFormValues) => Promise<SalaryFormActionResult>;
+  /** Overrides the default "default profile" note under the form title. */
+  profileNote?: React.ReactNode;
+  /** Rendered above the results panel when the action returns a salaryEntryId (i.e. it persisted). */
+  renderSavedNotice?: (salaryEntryId: string) => React.ReactNode;
+}
+
+export function SalaryEntryForm({
+  action = calculateSalaryAction,
+  profileNote,
+  renderSavedNotice,
+}: SalaryEntryFormProps = {}) {
   const [result, setResult] = useState<SalaryCalculationViewModel | null>(null);
+  const [savedEntryId, setSavedEntryId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [savingsSummary, setSavingsSummary] =
     useState<SavingsPlanSummaryViewModel | null>(null);
@@ -75,7 +98,7 @@ export function SalaryEntryForm() {
 
   async function onSubmit(values: SalaryEntryFormValues) {
     setServerError(null);
-    const response = await calculateSalaryAction(values);
+    const response = await action(values);
     if (!response.ok) {
       setServerError("Please check the highlighted fields and try again.");
       for (const [field, messages] of Object.entries(response.fieldErrors)) {
@@ -87,6 +110,7 @@ export function SalaryEntryForm() {
       }
       return;
     }
+    setSavedEntryId(response.salaryEntryId ?? null);
     setResult(response.data);
   }
 
@@ -99,9 +123,13 @@ export function SalaryEntryForm() {
               <CardHeader>
                 <CardTitle>Salary entry</CardTitle>
                 <CardDescription>
-                  Calculated using the default profile — married, 4 children
-                  (100% relief), EPF 11%, tax resident. Profile editing arrives
-                  in a later phase.
+                  {profileNote ?? (
+                    <>
+                      Calculated using the default profile — married, 4 children
+                      (100% relief), EPF 11%, tax resident. Profile editing arrives
+                      in a later phase.
+                    </>
+                  )}
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -209,9 +237,12 @@ export function SalaryEntryForm() {
           </form>
         </Form>
 
-        <div className="md:sticky md:top-6">
+        <div className="md:sticky md:top-6 md:grid md:gap-4">
           {result ? (
-            <ResultsPanel data={result} />
+            <>
+              {savedEntryId && renderSavedNotice ? renderSavedNotice(savedEntryId) : null}
+              <ResultsPanel data={result} />
+            </>
           ) : (
             <Card>
               <CardContent className="text-muted-foreground py-10 text-center text-sm">

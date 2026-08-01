@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import type { CalculateSalaryEntryResult } from "@/lib/payroll/run-pipeline";
+import { deriveZakat, type CalculateSalaryEntryResult } from "@/lib/payroll/run-pipeline";
 import type { Money } from "@/lib/payroll/types";
 
 function money(value: Money): string {
@@ -56,13 +56,7 @@ export function toSalaryCalculationViewModel(
     weekendSupport,
   } = result;
 
-  // zakat isn't passed through SalaryPipelineResult directly; it's the only
-  // unaccounted-for term in totalDeductions = epf+socso+eis+pcb+zakat+0.
-  const zakat = w.netSalary.totalDeductions
-    .minus(w.epf.employeeContribution)
-    .minus(w.socso.employeeContribution)
-    .minus(w.eis.employeeContribution)
-    .minus(w.pcb.currentMonthPcb);
+  const zakat = deriveZakat(w);
 
   const percentRetained = new Decimal(100).minus(
     weekendSupport.effectiveMarginalDeductionRatePercent,
