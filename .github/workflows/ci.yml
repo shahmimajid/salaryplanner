@@ -10,6 +10,22 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: "postgresql://salaryplanner:salaryplanner@localhost:5432/salaryplanner?schema=public"
+      AUTH_SECRET: "ci-only-secret-not-used-in-production"
+      AUTH_URL: "http://localhost:3000"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: salaryplanner
+          POSTGRES_PASSWORD: salaryplanner
+          POSTGRES_DB: salaryplanner
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U salaryplanner"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@v4
 
@@ -38,3 +54,15 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Apply migrations
+        run: pnpm db:migrate:deploy
+
+      - name: Seed payroll configuration
+        run: pnpm db:seed
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: E2E tests
+        run: pnpm test:e2e

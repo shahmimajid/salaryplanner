@@ -107,3 +107,34 @@ for real use:
     doesn't exist yet in this local-mode, no-persistence pass (only one
     calculation result exists in memory at a time). These three charts are
     deferred to Phase 4, once calculations are actually persisted.
+21. `PayrollProfile` is **not versioned per calculation** — history detail
+    (`src/lib/history/load-calculation-detail.ts`) recomputes against the
+    *pinned* `PayrollConfiguration` but always the user's *current*
+    `PayrollProfile` row. This is moot today (no profile-editing UI exists,
+    so the profile never changes after signup), but becomes a real
+    correctness gap the moment profile editing ships: editing a profile
+    would silently change how every past calculation recomputes on
+    re-view. Flagged as a hard requirement for that future work (either
+    version the profile the same way configuration is versioned, or
+    snapshot the resolved profile fields onto `SalaryEntry`/
+    `SalaryCalculation` at save time).
+22. Session cookies are **not marked `Secure`** in the current deployment.
+    Auth.js only sets that flag over `https://`, and Phase 4 deploys to a
+    bare `http://<ip>:<port>` with no TLS/reverse proxy. Accepted as an
+    interim gap — forcing `Secure` would break login entirely over plain
+    HTTP. Real fix: put a reverse proxy + TLS + a real domain in front,
+    later.
+23. The login/signup rate limiter (`src/lib/auth/rate-limit.ts`) is an
+    **in-memory, single-instance, keyed-by-email** sliding window. It resets
+    on every redeploy/restart, doesn't share state across multiple app
+    instances, and can't see a real client IP (no reverse proxy supplying
+    trustworthy `X-Forwarded-For` in the current deployment). Sufficient to
+    blunt casual brute-forcing today; a real fix needs Redis (or similar)
+    behind a reverse proxy that terminates and forwards real client IPs —
+    out of scope for Phase 4.
+24. Audit logging (spec §12) is deferred entirely — it scopes to admin
+    config-editing, and no admin UI exists yet (see item 6 in
+    `docs/architecture.md`'s user flow). Nothing meaningful to log until
+    that ships; deferred consistently with Phase 4's "core history scope
+    only" decision rather than built speculatively ahead of the feature it
+    would audit.

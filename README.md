@@ -14,10 +14,10 @@ PWA-ready
 
 ## Project Status
 
-**Phase 1 of 5** — architecture, folder structure, Prisma schema, versioned
-payroll-configuration format, and calculation-engine type signatures only.
-No statutory math is implemented yet (every `calculate*` function throws
-`"Not implemented — Phase 2"`). See [`docs/architecture.md`](docs/architecture.md)
+**Phase 4 of 5** — authentication (Auth.js, credentials), database
+persistence, and calculation history (save/list/view/delete) are live
+alongside the Phase 3 local (no-account) calculator, which is unchanged and
+still available at `/`. See [`docs/architecture.md`](docs/architecture.md)
 and [`docs/assumptions.md`](docs/assumptions.md).
 
 ## Getting Started
@@ -30,6 +30,25 @@ pnpm db:migrate
 pnpm db:seed                # loads illustrative/UNVERIFIED payroll config
 pnpm dev                    # http://localhost:3000
 ```
+
+## Deployment
+
+The `app` and `migrate` services in `docker-compose.yml` are gated behind
+the `full` Compose profile, so local development (`docker compose up -d`,
+Postgres only) is unaffected. To build and run the full stack:
+
+```bash
+docker compose --profile full build app migrate
+docker compose --profile full up -d postgres
+docker compose --profile full run --rm migrate                  # prisma migrate deploy
+docker compose --profile full run --rm migrate npx tsx prisma/seed.ts
+docker compose --profile full up -d app
+```
+
+Requires `DATABASE_URL`, `AUTH_SECRET` (`openssl rand -base64 32`), and
+`AUTH_URL` in `.env` — see `.env.example`. Auth.js only sets the `Secure`
+cookie flag over `https://`; deploying behind plain HTTP is an accepted
+interim gap documented in [`docs/assumptions.md`](docs/assumptions.md).
 
 ## Scripts
 
@@ -58,7 +77,8 @@ src/app/            Next.js App Router pages, layouts, and API routes
 src/components/ui/   shadcn/ui components
 src/lib/payroll/     Framework-agnostic payroll calculation engine
 src/lib/db/          Prisma client singleton
-src/lib/auth/        Auth.js configuration (wired in Phase 4)
+src/lib/auth/        Auth.js configuration, rate limiting, session helpers
+src/lib/history/     Persistence + recompute-at-view-time for saved calculations
 docs/                Architecture notes, statutory assumptions, original spec
 tests/e2e/           Playwright end-to-end tests
 ```

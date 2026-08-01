@@ -3,18 +3,54 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: salaryplanner
-      POSTGRES_PASSWORD: salaryplanner
-      POSTGRES_DB: salaryplanner
+      POSTGRES_USER: ${POSTGRES_USER:-salaryplanner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-salaryplanner}
+      POSTGRES_DB: ${POSTGRES_DB:-salaryplanner}
     ports:
-      - "5432:5432"
+      - "${DB_BIND:-127.0.0.1}:${DB_PORT:-5432}:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U salaryplanner"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-salaryplanner}"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # `app`/`migrate` are behind the "full" profile so local dev's plain
+  # `docker compose up -d` (Postgres only, app runs via `pnpm dev` on the
+  # host) is unaffected. Real deployments run
+  # `docker compose --profile full ...`.
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    profiles: ["full"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-salaryplanner}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-salaryplanner}?schema=public
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET is required}
+      AUTH_URL: ${AUTH_URL:?AUTH_URL is required}
+      NODE_ENV: production
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-My Net Salary Planner}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${APP_BIND:-127.0.0.1}:${APP_PORT:-3000}:3000"
+
+  # Runs `prisma migrate deploy` (or `db:seed` via an override command) from
+  # the builder stage, which has the full toolchain + schema + migrations
+  # the slim runner image deliberately omits.
+  migrate:
+    build:
+      context: .
+      target: builder
+    profiles: ["full"]
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-salaryplanner}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-salaryplanner}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["npx", "prisma", "migrate", "deploy"]
 
 volumes:
   postgres-data:
