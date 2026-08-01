@@ -46,8 +46,14 @@ test-sensitive part of this app. Keeping it as pure functions
 - The same functions serve the salary-entry flow, the weekend-support
   comparison mode, and future export/report generation.
 - Nothing here reaches into Prisma directly — callers resolve a
-  `PayrollConfigSnapshot` first (via `resolveConfig()`) and pass it in,
+  `PayrollConfigSnapshot` first (via `resolveConfig()`, or
+  `loadLocalPayrollConfig()` in Phase 3's local mode) and pass it in,
   keeping the engine deterministic and side-effect free.
+- Derived/presentational figures that aren't part of a statutory
+  function's own contract — e.g. the savings planner's expense-vs-savings
+  classification, or a chart's data shaping — stay in `src/components/`,
+  not `src/lib/payroll/`. The engine returns exactly what each calculation
+  function's tests assert; everything else is UI-layer composition.
 
 ## Versioned configuration
 

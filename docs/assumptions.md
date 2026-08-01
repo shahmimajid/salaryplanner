@@ -90,3 +90,20 @@ for real use:
     year-to-date EPF, since no `previousCumulativeEpfForYear` input exists
     yet — will overstate/understate the relief for anyone whose EPF wage
     varies month to month.
+19. `PayrollProfileSnapshot`/`PayrollProfile` has no "preferred monthly
+    savings target" or "emergency fund target" field, even though spec §2
+    lists them as profile fields. The savings planner UI (Phase 3) works
+    around this with an ephemeral, non-persisted "Monthly savings target"
+    input local to the planner itself — it resets on reload, same as
+    everything else in local mode. Once profile persistence exists
+    (Phase 4), add real `monthlySavingsTarget`/`emergencyFundTarget`
+    Decimal fields to `PayrollProfile`/`PayrollProfileSnapshot` and replace
+    the ad-hoc field.
+20. The dashboard (Phase 3) only implements 3 of spec §7's 6 required
+    charts — gross vs net, deduction breakdown, weekend-support gross vs
+    net — all computable from a single in-memory calculation. "Monthly
+    savings trend", "salary and support history", and "annual income/
+    deductions/savings" need data across multiple saved months, which
+    doesn't exist yet in this local-mode, no-persistence pass (only one
+    calculation result exists in memory at a time). These three charts are
+    deferred to Phase 4, once calculations are actually persisted.
