@@ -10,15 +10,18 @@ pay.
 
 Next.js 16 (App Router, TypeScript) · Tailwind CSS 4 + shadcn/ui · Prisma 7 +
 PostgreSQL · Auth.js · Recharts · Zod · Vitest + Playwright · Docker ·
-PWA-ready
+Serwist (installable PWA + service worker) · `@react-pdf/renderer` (payslip
+export) · `idb` (offline drafts)
 
 ## Project Status
 
-**Phase 4 of 5** — authentication (Auth.js, credentials), database
-persistence, and calculation history (save/list/view/delete) are live
-alongside the Phase 3 local (no-account) calculator, which is unchanged and
-still available at `/`. See [`docs/architecture.md`](docs/architecture.md)
-and [`docs/assumptions.md`](docs/assumptions.md).
+**Phase 5 of 5** — full history (save/list/view/delete/edit/duplicate/
+compare/filter-by-year/annual-totals), all 6 spec dashboard charts,
+persisted savings plans, CSV/PDF export, and an installable PWA with
+offline draft creation + sync are live alongside Phase 3's local
+(no-account) calculator, still available unchanged at `/`. See
+[`docs/architecture.md`](docs/architecture.md) and
+[`docs/assumptions.md`](docs/assumptions.md).
 
 ## Getting Started
 
@@ -75,13 +78,36 @@ interim gap documented in [`docs/assumptions.md`](docs/assumptions.md).
 prisma/            Prisma schema, migrations, seed script and seed data
 src/app/            Next.js App Router pages, layouts, and API routes
 src/components/ui/   shadcn/ui components
+src/components/pwa/  Install prompt, update banner, offline sync/drafts UI
 src/lib/payroll/     Framework-agnostic payroll calculation engine
 src/lib/db/          Prisma client singleton
 src/lib/auth/        Auth.js configuration, rate limiting, session helpers
 src/lib/history/     Persistence + recompute-at-view-time for saved calculations
+src/lib/savings/     Savings-plan persistence
+src/lib/export/      CSV/PDF export
+src/lib/offline/     IndexedDB draft queue + sync
+src/sw.ts            Service worker source (bundled by Serwist at build time)
+scripts/             One-off dev scripts (PWA icon generation)
 docs/                Architecture notes, statutory assumptions, original spec
 tests/e2e/           Playwright end-to-end tests
 ```
+
+## PWA / Offline
+
+Install from the browser's install prompt (or the "Install app" button in
+the header on Chromium/Edge; iOS Safari shows an "Add to Home Screen" hint
+instead, since it has no install-prompt event). Once installed:
+
+- Previously-visited pages are available offline (network-first with a
+  cache fallback).
+- On `/dashboard`, submitting while offline saves the entry as a local
+  draft instead of failing — a banner shows unsynced drafts and syncs them
+  automatically as soon as the connection returns. If the target month was
+  also saved from elsewhere in the meantime, the draft is flagged as a
+  conflict for you to overwrite or discard, rather than silently
+  clobbering it.
+- A banner appears when a new version has been installed in the
+  background — reload to pick it up.
 
 ## Disclaimer
 

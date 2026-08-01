@@ -12,7 +12,7 @@ A framework-agnostic **calculation engine** (`src/lib/payroll/`) is
 deliberately decoupled from Prisma/Next: it takes plain typed inputs
 (including a resolved `PayrollConfigSnapshot`) and returns plain typed
 outputs, so it can be unit-tested in isolation and reused by Route Handlers,
-Server Actions, and (later) a PDF/CSV export job.
+Server Actions, and the CSV/PDF export Route Handlers (`src/app/api/export/`).
 
 ## User flow (target end-state, built incrementally across phases)
 
@@ -38,12 +38,79 @@ Server Actions, and (later) a PDF/CSV export job.
    calculated-at); `/history/[id]` **recomputes at view time** against the
    *pinned* `PayrollConfiguration` version rather than storing extra
    derived columns, reusing `ResultsPanel`/`Dashboard` with zero new UI
-   code. Delete requires an explicit confirmation dialog (Phase 4). CSV/PDF
-   export, edit, duplicate, compare, and annual summary are deferred past
-   Phase 4's core scope.
+   code. Delete requires an explicit confirmation dialog (Phase 4).
+   **Phase 5** adds: `/history/[id]/edit` (locks the payroll month, reusing
+   `saveSalaryEntry`'s same-month-collapse behavior on purpose);
+   `/history/[id]`'s "Duplicate" picker (a target-month dialog that warns
+   before overwriting an existing month, then pre-fills `/dashboard`);
+   `/history/compare?a=&b=` (side-by-side diff, pure reuse of
+   `loadCalculationDetail` called twice); year filtering and
+   `/history/annual` (sums `SalaryEntry`+`SalaryCalculation`+
+   `SavingsPlan.allocations` for a calendar year); and CSV
+   (`/api/export/history`) / payslip-PDF (`/api/export/payslip/[id]`)
+   export Route Handlers.
 6. Admin area (role = `ADMIN`) manages new `PayrollConfiguration` versions
    with effective dates, without mutating historical ones (not yet built).
-7. PWA shell, offline drafts, install prompts (Phase 5).
+7. **PWA (Phase 5)**: installable (manifest + generated icons), a service
+   worker (`src/sw.ts`, served via `src/app/serwist/[path]/route.ts` —
+   `@serwist/turbopack`'s Route-Handler-based integration, not a static
+   `public/sw.js`), offline access to previously-visited pages, offline
+   draft creation on `/dashboard` with automatic sync on reconnect, and an
+   update-available banner. See "PWA caching strategy" and "Offline sync
+   model" below.
+8. **Savings plans (Phase 5)** persist per `SalaryEntry` (`SavingsPlan` +
+   `SavingsAllocation`, wiring up models that existed unused since Phase
+   1). The planner stays fully ephemeral in local mode; on `/dashboard` an
+   explicit "Save savings plan" button persists it, recomputing
+   server-side from the entry's stored net salary — never trusting
+   client-sent amounts.
+9. Three more dashboard charts (Phase 5) — monthly savings trend, salary/
+   support history (`src/components/dashboard/history-trends.tsx`, always
+   visible on `/dashboard` for signed-in users) and the annual totals bar
+   chart on `/history/annual` — complete spec §7's 6 required charts,
+   sourced from `src/lib/history/list-monthly-series.ts` (one shared
+   per-month query reused by the first two).
+
+## PWA caching strategy
+
+`src/sw.ts` defines explicit per-route-class `runtimeCaching` rules
+(security-sensitive, not left to Serwist's generic defaults):
+
+- Static assets (`_next/static`, `/icons/*`): cache-first — safe, hashed,
+  immutable filenames.
+- `/` (local mode): network-first with a cache fallback — nothing here is
+  per-user, so it's safe to reopen offline.
+- `/api/auth/*`, `/api/export/*`, and any Server Action POST (Server
+  Actions POST to the same URL as the page, so the authenticated-page rule
+  below is scoped to `GET` only — a POST simply matches nothing and goes
+  straight to the network): explicit `NetworkOnly`, never cached.
+- `/dashboard`, `/history/**` (authenticated HTML): network-first, **no
+  implicit full-page caching** — avoids a shared-device data-leak risk. The
+  service worker itself never opportunistically retains one user's
+  authenticated HTML.
+
+## Offline sync model
+
+Offline draft creation is scoped to `/dashboard`'s salary-entry form only
+(`SalaryEntryForm`'s `offlineCapable` prop) — local mode has nothing to
+sync, and the calculation engine only runs server-side, so an offline
+submission can't show a computed preview, only capture the raw input.
+
+- **Storage**: `src/lib/offline/db.ts`, a typed IndexedDB wrapper (`idb`)
+  around a `drafts` store keyed by a client-generated `localId`, scoped by
+  `userId`.
+- **Sync trigger**: the browser `online` event (not the Background Sync
+  API — Safari doesn't support it), plus once on mount if already online.
+  `src/lib/offline/sync-drafts.ts`'s `syncPendingDrafts()` does the work.
+- **Conflict handling**: before syncing each draft, `checkPayrollMonthAvailability`
+  (also used by the duplicate picker) checks whether the target month now
+  has a saved entry (e.g. saved from another device while offline). If so,
+  the draft is marked as a conflict requiring explicit user resolution
+  ("Overwrite" or "Discard" in `offline-drafts-banner.tsx`) rather than
+  silently overwriting. Drafts targeting an open month sync automatically.
+- **Sign-out hygiene**: `SignOutClearOfflineForm` clears this user's
+  offline drafts before the sign-out `Server Action` runs, so a shared
+  device doesn't retain them across accounts.
 
 ## Why a separate calculation engine
 

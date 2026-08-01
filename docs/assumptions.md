@@ -90,23 +90,21 @@ for real use:
     year-to-date EPF, since no `previousCumulativeEpfForYear` input exists
     yet — will overstate/understate the relief for anyone whose EPF wage
     varies month to month.
-19. `PayrollProfileSnapshot`/`PayrollProfile` has no "preferred monthly
-    savings target" or "emergency fund target" field, even though spec §2
-    lists them as profile fields. The savings planner UI (Phase 3) works
-    around this with an ephemeral, non-persisted "Monthly savings target"
-    input local to the planner itself — it resets on reload, same as
-    everything else in local mode. Once profile persistence exists
-    (Phase 4), add real `monthlySavingsTarget`/`emergencyFundTarget`
-    Decimal fields to `PayrollProfile`/`PayrollProfileSnapshot` and replace
-    the ad-hoc field.
-20. The dashboard (Phase 3) only implements 3 of spec §7's 6 required
-    charts — gross vs net, deduction breakdown, weekend-support gross vs
-    net — all computable from a single in-memory calculation. "Monthly
-    savings trend", "salary and support history", and "annual income/
-    deductions/savings" need data across multiple saved months, which
-    doesn't exist yet in this local-mode, no-persistence pass (only one
-    calculation result exists in memory at a time). These three charts are
-    deferred to Phase 4, once calculations are actually persisted.
+19. **Resolved in Phase 5.** `PayrollProfileSnapshot`/`PayrollProfile` still
+    has no "preferred monthly savings target" field — instead, `SavingsPlan`
+    (already scoped one-per-`SalaryEntry`, not per-profile) gained a
+    `monthlySavingsTarget Decimal?` column. The planner's "Monthly savings
+    target" input persists there when saved on `/dashboard`; it remains
+    ephemeral in local mode, same as before. "Emergency fund target" is
+    still not a distinct persisted field — `EMERGENCY_FUND` is one of the
+    `SavingsCategory` allocation rows instead, which already captures a
+    per-month amount for it.
+20. **Resolved in Phase 5.** All 6 of spec §7's required charts now exist:
+    the 3 original single-calculation charts (Phase 3) plus monthly savings
+    trend, salary/support history (`src/components/dashboard/history-trends.tsx`,
+    always visible on `/dashboard` for signed-in users), and the annual
+    totals chart on `/history/annual` — sourced from
+    `src/lib/history/list-monthly-series.ts`.
 21. `PayrollProfile` is **not versioned per calculation** — history detail
     (`src/lib/history/load-calculation-detail.ts`) recomputes against the
     *pinned* `PayrollConfiguration` but always the user's *current*
@@ -117,7 +115,11 @@ for real use:
     re-view. Flagged as a hard requirement for that future work (either
     version the profile the same way configuration is versioned, or
     snapshot the resolved profile fields onto `SalaryEntry`/
-    `SalaryCalculation` at save time).
+    `SalaryCalculation` at save time). **Phase 5 note**: this now also
+    applies to the edit flow (`/history/[id]/edit`) — re-saving a month
+    recomputes against the *current* profile, the same caveat as history
+    detail's recompute, no longer purely hypothetical now that a real
+    re-save path exists.
 22. Session cookies are **not marked `Secure`** in the current deployment.
     Auth.js only sets that flag over `https://`, and Phase 4 deploys to a
     bare `http://<ip>:<port>` with no TLS/reverse proxy. Accepted as an
@@ -138,3 +140,25 @@ for real use:
     that ships; deferred consistently with Phase 4's "core history scope
     only" decision rather than built speculatively ahead of the feature it
     would audit.
+25. The annual summary's "average effective deduction rate"
+    (`computeAnnualSummary`) is an **equal-weighted average of each month's
+    own rate**, not income-weighted (`totalDeductions / totalGross`, which
+    would let a higher-income month count more). Explicit decision, not an
+    oversight — the literal "average of the monthly rates" reading, and
+    simpler to explain against the number shown.
+26. **Duplicate** and **edit** have no dedicated schema support for
+    "this entry was duplicated from that one" or "this is an edit, not an
+    original" — both are pure application logic over the existing
+    `SalaryEntry`/`SalaryCalculation` upsert-by-`(userId, payrollMonth)`
+    behavior. Duplicate targeting a month that already has a saved entry
+    **overwrites it**, exactly like any other resave — the duplicate
+    picker's collision warning is the only thing standing between the user
+    and that overwrite, so the confirmation step is load-bearing, not
+    decorative.
+27. `SalaryEntryForm`'s offline draft path (Phase 5) has no computed
+    preview — the calculation engine only runs server-side (it needs a
+    resolved `PayrollConfigSnapshot` from Prisma), so an offline submission
+    can only capture the raw form input, not a live estimate. The user
+    only sees figures once the draft syncs. Savings-plan data is never
+    captured in an offline draft either, since the savings step itself
+    only becomes reachable after a server-computed result exists.
