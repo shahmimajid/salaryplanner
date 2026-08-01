@@ -1,6 +1,10 @@
 "use client";
 
-import { useFormContext, type FieldPath } from "react-hook-form";
+import {
+  useFormContext,
+  type FieldPath,
+  type FieldValues,
+} from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -12,9 +16,10 @@ import { Input } from "@/components/ui/input";
 import { FieldTooltip } from "@/components/calculator/field-tooltip";
 import type { SalaryEntryFormValues } from "@/components/calculator/schema";
 
-interface NumberFieldProps {
-  name: FieldPath<SalaryEntryFormValues>;
-  label: string;
+interface NumberFieldProps<TFieldValues extends FieldValues> {
+  name: FieldPath<TFieldValues>;
+  /** Omit for a compact, label-less field (e.g. inside a table-like row that already shows its own label elsewhere). */
+  label?: string;
   tooltip?: React.ReactNode;
   step?: string;
   allowNegative?: boolean;
@@ -22,19 +27,28 @@ interface NumberFieldProps {
 
 /**
  * Native <input type="number"> always emits/expects string values, but the
- * form's typed state (SalaryEntryFormValues, from z.infer) holds numbers —
- * spreading react-hook-form's {...field} directly onto the input would
- * silently store raw strings instead. This wrapper does the string<->number
- * conversion explicitly at the one boundary where it needs to happen.
+ * form's typed state (from z.infer) holds numbers — spreading react-hook-
+ * form's {...field} directly onto the input would silently store raw
+ * strings instead. This wrapper does the string<->number conversion
+ * explicitly at the one boundary where it needs to happen.
+ *
+ * Generic over TFieldValues (defaulting to SalaryEntryFormValues, its
+ * original use) so it can also be used inside other forms — e.g. the
+ * savings planner's own separate <Form> — by writing
+ * <NumberField<SavingsPlannerFormValues> name="..." .../>. Resolves
+ * whichever form's context is nearest via useFormContext, same as any
+ * other react-hook-form field component.
  */
-export function NumberField({
+export function NumberField<
+  TFieldValues extends FieldValues = SalaryEntryFormValues,
+>({
   name,
   label,
   tooltip,
   step = "0.01",
   allowNegative = false,
-}: NumberFieldProps) {
-  const form = useFormContext<SalaryEntryFormValues>();
+}: NumberFieldProps<TFieldValues>) {
+  const form = useFormContext<TFieldValues>();
 
   return (
     <FormField
@@ -42,10 +56,12 @@ export function NumberField({
       name={name}
       render={({ field }) => (
         <FormItem>
-          <FormLabel className="flex items-center gap-1.5">
-            {label}
-            {tooltip ? <FieldTooltip>{tooltip}</FieldTooltip> : null}
-          </FormLabel>
+          {label ? (
+            <FormLabel className="flex items-center gap-1.5">
+              {label}
+              {tooltip ? <FieldTooltip>{tooltip}</FieldTooltip> : null}
+            </FormLabel>
+          ) : null}
           <FormControl>
             <Input
               type="number"
