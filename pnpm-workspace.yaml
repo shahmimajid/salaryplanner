@@ -1,5 +1,6 @@
 allowBuilds:
   "@prisma/engines": true
+  "@swc/core": true
   esbuild: true
   prisma: true
   sharp: true
@@ -8,5 +9,6 @@ onlyBuiltDependencies:
   - sharp
   - unrs-resolver
   - "@prisma/engines"
+  - "@swc/core"
   - esbuild
   - prisma
