@@ -24,8 +24,11 @@ Server Actions, and the CSV/PDF export Route Handlers (`src/app/api/export/`).
 2. Auth (Auth.js, Credentials provider, Phase 4) → sign-up creates a `User`
    + a default `PayrollProfile` (marital status, children, EPF rate,
    citizenship, etc.) seeded from the same defaults local mode uses.
-   Profile editing is not yet implemented — every account uses the seeded
-   default until that ships.
+   `/profile` lets a user edit it later. Every `SalaryCalculation` pins the
+   exact profile snapshot in effect when it was saved
+   (`SalaryCalculation.profileSnapshot`), so editing never retroactively
+   changes how a past calculation displays — only future calculations pick
+   up the new profile.
 3. Authenticated user submits a salary entry on `/dashboard` → server
    resolves the active `PayrollConfiguration` → the calculation engine
    produces a `SalaryCalculation` + `DeductionBreakdown[]` (Phase 2 engine,
@@ -36,9 +39,12 @@ Server Actions, and the CSV/PDF export Route Handlers (`src/app/api/export/`).
    (Phase 3 UI, reused unchanged for authenticated users).
 5. `/history` lists past calculations (payroll month, gross, net,
    calculated-at); `/history/[id]` **recomputes at view time** against the
-   *pinned* `PayrollConfiguration` version rather than storing extra
-   derived columns, reusing `ResultsPanel`/`Dashboard` with zero new UI
-   code. Delete requires an explicit confirmation dialog (Phase 4).
+   *pinned* `PayrollConfiguration` version *and* the *pinned*
+   `PayrollProfile` snapshot (both fixed at save time — a later config
+   change or profile edit can never retroactively change a past
+   calculation's displayed figures) rather than storing extra derived
+   columns, reusing `ResultsPanel`/`Dashboard` with zero new UI code.
+   Delete requires an explicit confirmation dialog (Phase 4).
    **Phase 5** adds: `/history/[id]/edit` (locks the payroll month, reusing
    `saveSalaryEntry`'s same-month-collapse behavior on purpose);
    `/history/[id]`'s "Duplicate" picker (a target-month dialog that warns

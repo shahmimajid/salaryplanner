@@ -105,21 +105,22 @@ for real use:
     always visible on `/dashboard` for signed-in users), and the annual
     totals chart on `/history/annual` — sourced from
     `src/lib/history/list-monthly-series.ts`.
-21. `PayrollProfile` is **not versioned per calculation** — history detail
-    (`src/lib/history/load-calculation-detail.ts`) recomputes against the
-    *pinned* `PayrollConfiguration` but always the user's *current*
-    `PayrollProfile` row. This is moot today (no profile-editing UI exists,
-    so the profile never changes after signup), but becomes a real
-    correctness gap the moment profile editing ships: editing a profile
-    would silently change how every past calculation recomputes on
-    re-view. Flagged as a hard requirement for that future work (either
-    version the profile the same way configuration is versioned, or
-    snapshot the resolved profile fields onto `SalaryEntry`/
-    `SalaryCalculation` at save time). **Phase 5 note**: this now also
-    applies to the edit flow (`/history/[id]/edit`) — re-saving a month
-    recomputes against the *current* profile, the same caveat as history
-    detail's recompute, no longer purely hypothetical now that a real
-    re-save path exists.
+21. **Resolved.** `PayrollProfile` is not a versioned table, but every
+    `SalaryCalculation` now pins the exact `PayrollProfileSnapshot` used
+    at save time (`profileSnapshot Json?` column, alongside the existing
+    `payrollConfigurationId` FK that already pinned the statutory config
+    version) — the same "snapshot the resolved fields at save time"
+    remedy this item originally proposed as an alternative to full
+    versioning. `load-calculation-detail.ts` uses the pinned snapshot
+    when present, falling back to the live `PayrollProfile` row only for
+    calculations saved before this column existed (harmless — no profile
+    edits had ever happened by then, so old-vs-current profile are
+    identical for every such row). The edit flow (`/history/[id]/edit`)
+    is unaffected by this distinction either way: re-saving a month is a
+    fresh calculation against the *current* profile by design (that's the
+    point of editing), and the resulting new snapshot gets pinned exactly
+    like any other save — only *viewing* an unedited past calculation
+    relies on the pinned value staying fixed.
 22. **Resolved.** Session cookies are now `Secure` — the app is served over
     `https://planner.starlahubs.xyz` via a reverse proxy (TLS terminated
     upstream; `AUTH_URL` set to the `https://` domain, `trustHost: true` in
