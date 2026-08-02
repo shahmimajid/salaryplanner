@@ -21,7 +21,7 @@ export const authConfig = {
   trustHost: true,
   callbacks: {
     authorized({ auth, request }) {
-      const protectedPrefixes = ["/history", "/dashboard"];
+      const protectedPrefixes = ["/history", "/dashboard", "/profile"];
       const isProtected = protectedPrefixes.some((prefix) =>
         request.nextUrl.pathname.startsWith(prefix),
       );

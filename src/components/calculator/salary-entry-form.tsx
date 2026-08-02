@@ -170,8 +170,7 @@ export function SalaryEntryForm({
                   {profileNote ?? (
                     <>
                       Calculated using the default profile — married, 4 children
-                      (100% relief), EPF 11%, tax resident. Profile editing arrives
-                      in a later phase.
+                      (100% relief), EPF 11%, tax resident.
                     </>
                   )}
                 </CardDescription>

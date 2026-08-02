@@ -26,6 +26,9 @@ export async function SiteHeader() {
               <Link href="/history" className="underline">
                 History
               </Link>
+              <Link href="/profile" className="underline">
+                Profile
+              </Link>
               <SignOutClearOfflineForm userId={session.user.id} />
             </>
           ) : (

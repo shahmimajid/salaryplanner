@@ -25,8 +25,11 @@ export function DashboardForm({
       userId={userId}
       profileNote={
         <>
-          Calculated and saved using your profile — married, 4 children (100% relief),
-          EPF 11%, tax resident. Profile editing arrives in a later phase.
+          Calculated and saved using your profile.{" "}
+          <Link href="/profile" className="underline">
+            Edit your profile
+          </Link>
+          .
         </>
       }
       renderSavedNotice={(salaryEntryId) => (
