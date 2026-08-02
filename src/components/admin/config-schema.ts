@@ -10,6 +10,10 @@ export const epfRateRowSchema = z.object({
   maxAge: z.number().int().min(0).max(120).nullable(),
   employeeRatePercent: z.number().min(0).max(100),
   employerRatePercent: z.number().min(0).max(100),
+  // KWSP's employer rate is wage-tiered for some rows (13% <=RM5,000, 12%
+  // above, for citizens/PR below 60) — both null means a flat rate.
+  employerRateThreshold: z.number().min(0).nullable(),
+  employerRateAbovePercent: z.number().min(0).max(100).nullable(),
   notes: z.string().nullable(),
 });
 

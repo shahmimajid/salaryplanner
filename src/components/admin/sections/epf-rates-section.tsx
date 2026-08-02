@@ -83,6 +83,15 @@ export function EpfRatesSection() {
                   label="Employer rate (%)"
                   step="0.001"
                 />
+                <NumberField<PayrollConfigFormValues>
+                  name={`epfRates.${index}.employerRateThreshold`}
+                  label="Employer rate wage threshold (RM, blank = flat rate)"
+                />
+                <NumberField<PayrollConfigFormValues>
+                  name={`epfRates.${index}.employerRateAbovePercent`}
+                  label="Employer rate above threshold (%, blank = flat rate)"
+                  step="0.001"
+                />
                 <FormField
                   control={form.control}
                   name={`epfRates.${index}.notes`}
@@ -118,6 +127,8 @@ export function EpfRatesSection() {
                   maxAge: null,
                   employeeRatePercent: 0,
                   employerRatePercent: 0,
+                  employerRateThreshold: null,
+                  employerRateAbovePercent: null,
                   notes: null,
                 })
               }

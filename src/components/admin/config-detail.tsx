@@ -70,7 +70,12 @@ export function ConfigDetail({ config }: { config: PayrollConfigFormValues }) {
                     {row.minAge ?? "—"}–{row.maxAge ?? "—"}
                   </td>
                   <td className="py-1.5 pr-2">{row.employeeRatePercent}%</td>
-                  <td className="py-1.5 pr-2">{row.employerRatePercent}%</td>
+                  <td className="py-1.5 pr-2">
+                    {row.employerRatePercent}%
+                    {row.employerRateThreshold !== null && row.employerRateAbovePercent !== null
+                      ? ` (${row.employerRateAbovePercent}% above ${formatRinggit(row.employerRateThreshold)})`
+                      : ""}
+                  </td>
                   <td className="py-1.5">{row.notes ?? "—"}</td>
                 </tr>
               ))}

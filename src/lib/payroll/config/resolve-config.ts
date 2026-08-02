@@ -16,8 +16,8 @@ function toMoney(value: Prisma.Decimal): Money {
   return new Decimal(value.toString());
 }
 
-function toMoneyOrNull(value: Prisma.Decimal | null): Money | null {
-  return value === null ? null : toMoney(value);
+function toMoneyOrNull(value: Prisma.Decimal | null | undefined): Money | null {
+  return value === null || value === undefined ? null : toMoney(value);
 }
 
 // Exported so src/lib/admin/load-config-for-edit.ts can reuse the same
@@ -46,6 +46,8 @@ function mapConfigToSnapshot(config: ConfigWithRates): PayrollConfigSnapshot {
       maxAge: r.maxAge,
       employeeRatePercent: toMoney(r.employeeRatePercent),
       employerRatePercent: toMoney(r.employerRatePercent),
+      employerRateThreshold: toMoneyOrNull(r.employerRateThreshold),
+      employerRateAbovePercent: toMoneyOrNull(r.employerRateAbovePercent),
     })),
     epfWageBands: config.epfWageBands.map((b) => ({
       wageFrom: toMoney(b.wageFrom),

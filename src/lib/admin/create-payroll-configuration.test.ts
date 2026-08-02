@@ -47,6 +47,8 @@ const VALID_INPUT: PayrollConfigFormValues = {
       maxAge: 59,
       employeeRatePercent: 11,
       employerRatePercent: 13,
+      employerRateThreshold: 5000,
+      employerRateAbovePercent: 12,
       notes: null,
     },
   ],

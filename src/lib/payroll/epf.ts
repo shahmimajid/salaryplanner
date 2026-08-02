@@ -69,9 +69,20 @@ export function calculateEPF(input: EPFInput): EPFResult {
     employeeBeforeAdjustment = epfWage
       .times(profile.epfEmployeeRatePercent)
       .div(100);
-    employerBeforeAdjustment = epfWage
-      .times(rateRow.employerRatePercent)
-      .div(100);
+
+    // KWSP's employer rate is wage-tiered for some rows (e.g. 13% at wages
+    // <=RM5,000, 12% above) — only wages strictly above the threshold get
+    // the "above" rate; rows without a threshold keep the flat rate.
+    const employerRatePercent =
+      rateRow.employerRateThreshold !== null &&
+      rateRow.employerRateThreshold !== undefined &&
+      rateRow.employerRateAbovePercent !== null &&
+      rateRow.employerRateAbovePercent !== undefined &&
+      epfWage.gt(rateRow.employerRateThreshold)
+        ? rateRow.employerRateAbovePercent
+        : rateRow.employerRatePercent;
+
+    employerBeforeAdjustment = epfWage.times(employerRatePercent).div(100);
   }
 
   const employeeContribution = Decimal.max(

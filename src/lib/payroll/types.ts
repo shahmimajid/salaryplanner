@@ -56,6 +56,13 @@ export interface EpfRateRow {
   maxAge: number | null;
   employeeRatePercent: Money;
   employerRatePercent: Money;
+  // KWSP's employer rate is wage-tiered for some rows (e.g. 13% at wages
+  // <=RM5,000, 12% above) — when both are set, wages strictly above
+  // employerRateThreshold use employerRateAbovePercent instead of
+  // employerRatePercent. Optional so existing fixtures/config rows that
+  // predate this field don't need updating for the flat-rate case.
+  employerRateThreshold?: Money | null;
+  employerRateAbovePercent?: Money | null;
 }
 
 export interface EpfWageBandRow {

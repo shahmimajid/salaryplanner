@@ -337,6 +337,13 @@ model EPFRate {
   maxAge                 Int?              @map("max_age")
   employeeRatePercent    Decimal           @db.Decimal(6, 3) @map("employee_rate_percent")
   employerRatePercent    Decimal           @db.Decimal(6, 3) @map("employer_rate_percent")
+  // KWSP's employer rate is wage-tiered for some rows (e.g. 13% at wages
+  // <=RM5,000, 12% above) — when set, wages strictly above
+  // employerRateThreshold use employerRateAbovePercent instead of
+  // employerRatePercent. Both null means a flat rate regardless of wage,
+  // same as before this pair of columns existed.
+  employerRateThreshold     Decimal? @db.Decimal(12, 2) @map("employer_rate_threshold")
+  employerRateAbovePercent  Decimal? @db.Decimal(6, 3) @map("employer_rate_above_percent")
   notes                  String?           @db.Text
 
   payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)

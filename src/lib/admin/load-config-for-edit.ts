@@ -35,6 +35,8 @@ export async function loadPayrollConfigurationForEdit(
       maxAge: r.maxAge,
       employeeRatePercent: Number(r.employeeRatePercent),
       employerRatePercent: Number(r.employerRatePercent),
+      employerRateThreshold: r.employerRateThreshold ? Number(r.employerRateThreshold) : null,
+      employerRateAbovePercent: r.employerRateAbovePercent ? Number(r.employerRateAbovePercent) : null,
       notes: r.notes,
     })),
     epfWageBands: config.epfWageBands.map((b) => ({

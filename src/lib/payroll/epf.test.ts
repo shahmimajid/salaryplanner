@@ -105,6 +105,58 @@ describe("calculateEPF", () => {
     expect(result.employeeContribution.toString()).toBe("0");
   });
 
+  it("applies the flat employer rate at exactly the wage-tier threshold", () => {
+    const tieredConfig = buildRealisticTestConfig({
+      epfRates: [
+        {
+          citizenshipStatus: "CITIZEN",
+          minAge: null,
+          maxAge: 59,
+          employeeRatePercent: d(11),
+          employerRatePercent: d(13),
+          employerRateThreshold: d(5000),
+          employerRateAbovePercent: d(12),
+        },
+      ],
+    });
+
+    const result = calculateEPF({
+      epfWage: d(5000),
+      profile: { citizenshipStatus: "CITIZEN", epfEmployeeRatePercent: d(11), isBelow60: true },
+      config: tieredConfig,
+      epfAdjustment: d(0),
+    });
+
+    expect(result.employerContribution.toString()).toBe("650"); // 5000 * 13% (at threshold, not above it)
+  });
+
+  it("applies the above-threshold employer rate for wages strictly above the tier", () => {
+    const tieredConfig = buildRealisticTestConfig({
+      epfRates: [
+        {
+          citizenshipStatus: "CITIZEN",
+          minAge: null,
+          maxAge: 59,
+          employeeRatePercent: d(11),
+          employerRatePercent: d(13),
+          employerRateThreshold: d(5000),
+          employerRateAbovePercent: d(12),
+        },
+      ],
+    });
+
+    const result = calculateEPF({
+      epfWage: d(5000.01),
+      profile: { citizenshipStatus: "CITIZEN", epfEmployeeRatePercent: d(11), isBelow60: true },
+      config: tieredConfig,
+      epfAdjustment: d(0),
+    });
+
+    expect(result.employerContribution.toString()).toBe("600"); // 5000.01 * 12% = 600.0012 -> rounds to 600.00
+    // Employee rate never tiers — it's always profile.epfEmployeeRatePercent.
+    expect(result.employeeContribution.toString()).toBe("550"); // 5000.01 * 11% = 550.0011 -> rounds to 550.00
+  });
+
   it("rounds using ROUND_HALF_UP at the boundary", () => {
     const result = calculateEPF({
       epfWage: d(4545.5),
