@@ -20,7 +20,9 @@ function toMoneyOrNull(value: Prisma.Decimal | null): Money | null {
   return value === null ? null : toMoney(value);
 }
 
-const CONFIG_INCLUDE = {
+// Exported so src/lib/admin/load-config-for-edit.ts can reuse the same
+// 7-key include shape rather than duplicating it.
+export const CONFIG_INCLUDE = {
   epfRates: true,
   epfWageBands: true,
   socsoRates: true,
