@@ -1,7 +1,10 @@
 import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
 import { resolveConfigById } from "@/lib/payroll/config/resolve-config";
-import { toPayrollProfileSnapshot } from "@/lib/payroll/config/profile-snapshot";
+import {
+  toPayrollProfileSnapshot,
+  fromStoredProfileSnapshot,
+} from "@/lib/payroll/config/profile-snapshot";
 import { calculateSalaryEntry } from "@/lib/payroll/run-pipeline";
 import {
   toSalaryCalculationViewModel,
@@ -24,11 +27,13 @@ export interface CalculationDetail {
  * silently diverge, and pins to the *exact* PayrollConfiguration version
  * originally used (resolveConfigById, not a date-based re-resolve) —
  * preserving the versioned-config guarantee even if a later config change
- * would otherwise affect what a date lookup returns.
- *
- * Known caveat (docs/assumptions.md): PayrollProfile isn't versioned per
- * calculation — moot today since there's no profile-editing UI, but a
- * real correctness question the moment that ships.
+ * would otherwise affect what a date lookup returns. Likewise pins to the
+ * exact PayrollProfile snapshot in effect when this calculation was
+ * saved (SalaryCalculation.profileSnapshot), so a later profile edit
+ * can't retroactively change how a past calculation recomputes either.
+ * Falls back to the live PayrollProfile row only for calculations saved
+ * before that column existed (profileSnapshot null) — harmless, since no
+ * profile edits had ever happened by then.
  */
 export async function loadCalculationDetail(
   userId: string,
@@ -42,8 +47,12 @@ export async function loadCalculationDetail(
     return null;
   }
 
-  const profileRow = await prisma.payrollProfile.findUniqueOrThrow({ where: { userId } });
-  const profile = toPayrollProfileSnapshot(profileRow);
+  const pinnedProfile = entry.calculations[0].profileSnapshot;
+  const profile = pinnedProfile
+    ? fromStoredProfileSnapshot(pinnedProfile)
+    : toPayrollProfileSnapshot(
+        await prisma.payrollProfile.findUniqueOrThrow({ where: { userId } }),
+      );
   const config = await resolveConfigById(entry.calculations[0].payrollConfigurationId);
 
   const method = (entry.weekendSupportPaymentMethod ?? "MANUAL_TOTAL") as WeekendSupportPaymentMethod;

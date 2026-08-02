@@ -1,7 +1,10 @@
 import Decimal from "decimal.js";
 import { prisma } from "@/lib/db/prisma";
 import { resolveConfig } from "@/lib/payroll/config/resolve-config";
-import { toPayrollProfileSnapshot } from "@/lib/payroll/config/profile-snapshot";
+import {
+  toPayrollProfileSnapshot,
+  toStoredProfileSnapshotJson,
+} from "@/lib/payroll/config/profile-snapshot";
 import { calculateSalaryEntry, deriveZakat } from "@/lib/payroll/run-pipeline";
 import {
   toSalaryCalculationViewModel,
@@ -128,6 +131,7 @@ export async function saveSalaryEntry(
           engineResult.weekendSupport.netAdditionalIncomeFromWeekendSupport.toString(),
         effectiveDeductionRatePercent: w.netSalary.effectiveDeductionRatePercent.toString(),
         effectiveTakeHomePercent: w.netSalary.effectiveTakeHomePercent.toString(),
+        profileSnapshot: toStoredProfileSnapshotJson(profile),
         isCurrent: true,
         deductionBreakdowns: {
           create: [

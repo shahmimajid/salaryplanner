@@ -115,6 +115,12 @@ describe("saveSalaryEntry", () => {
     expect(createArgs.data.salaryEntryId).toBe("entry-new");
     expect(createArgs.data.payrollConfigurationId).toBe("config-1");
     expect(createArgs.data.isCurrent).toBe(true);
+    // Pins the resolved profile so a later profile edit can't retroactively
+    // change this calculation's recompute (docs/assumptions.md #21).
+    expect(createArgs.data.profileSnapshot).toMatchObject({
+      maritalStatus: "SINGLE",
+      epfEmployeeRatePercent: "11",
+    });
   });
 
   it("updates the existing SalaryEntry and supersedes the previous calculation for the same month", async () => {

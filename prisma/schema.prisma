@@ -231,6 +231,13 @@ model SalaryCalculation {
   netWeekendSupportIncome          Decimal @db.Decimal(12, 2) @map("net_weekend_support_income")
   effectiveDeductionRatePercent    Decimal @db.Decimal(6, 3) @map("effective_deduction_rate_percent")
   effectiveTakeHomePercent         Decimal @db.Decimal(6, 3) @map("effective_take_home_percent")
+  // The resolved PayrollProfileSnapshot at save time, pinned the same way
+  // payrollConfigurationId pins the statutory config version — so a later
+  // profile edit can never retroactively change how a past calculation
+  // recomputes. Null for rows saved before this column existed; those fall
+  // back to the live PayrollProfile row (harmless, since no profile edits
+  // had ever happened yet).
+  profileSnapshot                 Json?   @map("profile_snapshot")
 
   isCurrent    Boolean  @default(true) @map("is_current") // false when superseded by a recalculation
   calculatedAt DateTime @default(now()) @map("calculated_at")
