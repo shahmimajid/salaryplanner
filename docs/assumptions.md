@@ -120,12 +120,13 @@ for real use:
     recomputes against the *current* profile, the same caveat as history
     detail's recompute, no longer purely hypothetical now that a real
     re-save path exists.
-22. Session cookies are **not marked `Secure`** in the current deployment.
-    Auth.js only sets that flag over `https://`, and Phase 4 deploys to a
-    bare `http://<ip>:<port>` with no TLS/reverse proxy. Accepted as an
-    interim gap — forcing `Secure` would break login entirely over plain
-    HTTP. Real fix: put a reverse proxy + TLS + a real domain in front,
-    later.
+22. **Resolved.** Session cookies are now `Secure` — the app is served over
+    `https://planner.starlahubs.xyz` via a reverse proxy (TLS terminated
+    upstream; `AUTH_URL` set to the `https://` domain, `trustHost: true` in
+    `auth.config.ts`). The Phase 4/5 bare-`http://<ip>:<port>` deployment is
+    no longer how this app is publicly accessed — the raw IP:port only
+    works for direct host-local checks now, not signed-in flows (a `Secure`
+    cookie won't round-trip over plain HTTP).
 23. The login/signup rate limiter (`src/lib/auth/rate-limit.ts`) is an
     **in-memory, single-instance, keyed-by-email** sliding window. It resets
     on every redeploy/restart, doesn't share state across multiple app
