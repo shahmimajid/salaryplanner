@@ -29,6 +29,11 @@ export async function SiteHeader() {
               <Link href="/profile" className="underline">
                 Profile
               </Link>
+              {session.user.role === "ADMIN" ? (
+                <Link href="/admin" className="underline">
+                  Admin
+                </Link>
+              ) : null}
               <SignOutClearOfflineForm userId={session.user.id} />
             </>
           ) : (

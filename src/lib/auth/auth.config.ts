@@ -21,21 +21,33 @@ export const authConfig = {
   trustHost: true,
   callbacks: {
     authorized({ auth, request }) {
-      const protectedPrefixes = ["/history", "/dashboard", "/profile"];
-      const isProtected = protectedPrefixes.some((prefix) =>
-        request.nextUrl.pathname.startsWith(prefix),
-      );
-      return !isProtected || !!auth?.user;
+      const { pathname } = request.nextUrl;
+      const protectedPrefixes = ["/history", "/dashboard", "/profile", "/admin"];
+      const isProtected = protectedPrefixes.some((prefix) => pathname.startsWith(prefix));
+      if (!isProtected) return true;
+      if (!auth?.user) return false; // default /signin redirect
+
+      // Role check reads only the already-decoded JWT — no DB round-trip,
+      // safe on the Edge runtime. A promote/demote only takes effect on
+      // next sign-in (JWT sessions can't be invalidated mid-session).
+      if (pathname.startsWith("/admin") && auth.user.role !== "ADMIN") {
+        return Response.redirect(new URL("/dashboard", request.url));
+      }
+      return true;
     },
     jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
     session({ session, token }) {
       if (session.user && typeof token.id === "string") {
         session.user.id = token.id;
+      }
+      if (session.user && typeof token.role === "string") {
+        session.user.role = token.role as "USER" | "ADMIN";
       }
       return session;
     },

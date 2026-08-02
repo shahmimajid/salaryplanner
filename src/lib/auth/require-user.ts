@@ -13,3 +13,20 @@ export async function requireUser() {
   }
   return session.user;
 }
+
+/**
+ * Same defense-in-depth reasoning as requireUser() — proxy.ts's authorized()
+ * callback already redirects a non-admin away from /admin, but every
+ * authenticated data access re-checks here too rather than trusting
+ * routing alone.
+ */
+export async function requireAdmin() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    redirect("/signin");
+  }
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
+  return session.user;
+}
