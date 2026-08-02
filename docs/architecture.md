@@ -55,8 +55,28 @@ Server Actions, and the CSV/PDF export Route Handlers (`src/app/api/export/`).
    `SavingsPlan.allocations` for a calendar year); and CSV
    (`/api/export/history`) / payslip-PDF (`/api/export/payslip/[id]`)
    export Route Handlers.
-6. Admin area (role = `ADMIN`) manages new `PayrollConfiguration` versions
-   with effective dates, without mutating historical ones (not yet built).
+6. **Admin area (role = `ADMIN`, `/admin`)** manages `PayrollConfiguration`
+   versions. Creation is **duplicate-and-edit**: `/admin/new` starts from an
+   existing version's full nested data (defaulting to the currently-active
+   one, or a chosen source via `?duplicateFrom=`) with `version`/
+   `effectiveFrom`/`effectiveTo` blanked for re-entry, rather than a blank
+   11-tax-bracket form. Once created, a `PayrollConfiguration` and its 7
+   child arrays (EPF rates, EPF wage bands, SOCSO rates, EIS rates, tax
+   brackets, tax reliefs, tax rebates) are **immutable** — the only
+   permitted post-creation mutation is lifecycle-only (`isActive`/
+   `effectiveTo`, via `/admin/[id]`'s `ConfigLifecycleForm`), which never
+   touches nested rate data. `/admin/new` optionally retires the source
+   version in the same transaction (sets its `effectiveTo` to the day
+   before the new version's `effectiveFrom`) via a default-checked
+   checkbox — not required for correctness (`resolveConfig()` already
+   takes the newest `effectiveFrom` first), just avoids two simultaneously
+   "active" rows. Both config creation and lifecycle updates write an
+   `AuditLog` row (`action: CONFIG_CHANGE`) in the same transaction as the
+   data change. Role is carried on the JWT (`session.user.role`, set at
+   sign-in) and checked both at the edge (`auth.config.ts`'s `authorized()`
+   callback redirects a non-admin `/admin` request to `/dashboard`) and
+   again in `requireAdmin()` at every admin data-access point — see
+   `docs/assumptions.md` for the JWT role-staleness tradeoff this implies.
 7. **PWA (Phase 5)**: installable (manifest + generated icons), a service
    worker (`src/sw.ts`, served via `src/app/serwist/[path]/route.ts` —
    `@serwist/turbopack`'s Route-Handler-based integration, not a static

@@ -136,12 +136,14 @@ for real use:
     blunt casual brute-forcing today; a real fix needs Redis (or similar)
     behind a reverse proxy that terminates and forwards real client IPs —
     out of scope for Phase 4.
-24. Audit logging (spec §12) is deferred entirely — it scopes to admin
-    config-editing, and no admin UI exists yet (see item 6 in
-    `docs/architecture.md`'s user flow). Nothing meaningful to log until
-    that ships; deferred consistently with Phase 4's "core history scope
-    only" decision rather than built speculatively ahead of the feature it
-    would audit.
+24. **Resolved.** Audit logging now ships with the admin config UI (see
+    item 6 in `docs/architecture.md`'s user flow) — one `AuditLog` row
+    (`action: CONFIG_CHANGE`) is written on both config creation and
+    lifecycle updates, in the same transaction as the data change.
+    `AuditLog.ipAddress`/`userAgent` are still not populated — the columns
+    exist in the schema but nothing captures a request's IP/UA today;
+    `userId` + `entityId` + `changesJson` already answer "who changed
+    what," and the two columns can be filled in later without a migration.
 25. The annual summary's "average effective deduction rate"
     (`computeAnnualSummary`) is an **equal-weighted average of each month's
     own rate**, not income-weighted (`totalDeductions / totalGross`, which
@@ -164,3 +166,12 @@ for real use:
     only sees figures once the draft syncs. Savings-plan data is never
     captured in an offline draft either, since the savings step itself
     only becomes reachable after a server-computed result exists.
+28. `session.user.role` is set on the JWT at sign-in (`jwt()`'s `user`
+    branch in `auth.config.ts`) and never refreshed mid-session — a
+    promote/demote via direct SQL (`UPDATE users SET role=...`) only takes
+    effect the next time that user signs in. Same constraint as items 22/23
+    (JWT sessions, required by the Credentials provider, can't be
+    invalidated or updated server-side). Acceptable for a low-frequency
+    admin-role change; not acceptable if role changes ever need to be
+    instant (e.g. an emergency de-admin) — that would need DB sessions or a
+    short JWT `maxAge` with forced re-auth.
