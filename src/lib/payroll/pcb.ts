@@ -53,6 +53,35 @@ function annualTaxForBracket(
   );
 }
 
+/**
+ * Income-threshold rebates (e.g. Section 6A's RM400 individual/spouse
+ * rebate for chargeable income <=RM35,000) are an ANNUAL entitlement, not a
+ * per-month one — unlike zakat below, which is a genuinely per-month
+ * self-reported payment. So these reduce the annual liability once, before
+ * it's divided by 12, rather than being subtracted from a single month's
+ * PCB the way zakat is. ZAKAT_REBATE is handled separately and skipped
+ * here to avoid double-applying it.
+ */
+function applyThresholdRebates(
+  annualTax: Money,
+  chargeableIncome: Money,
+  taxRebates: PayrollConfigSnapshot["taxRebates"],
+): { adjustedTax: Money; applied: Array<{ code: string; amount: Money }> } {
+  let tax = annualTax;
+  const applied: Array<{ code: string; amount: Money }> = [];
+  for (const row of taxRebates) {
+    if (row.code === "ZAKAT_REBATE") continue;
+    if (row.amount === null || row.incomeThreshold === null) continue;
+    if (chargeableIncome.gt(row.incomeThreshold)) continue;
+    const rebateApplied = Decimal.min(row.amount, tax);
+    if (rebateApplied.gt(0)) {
+      tax = tax.minus(rebateApplied);
+      applied.push({ code: row.code, amount: rebateApplied });
+    }
+  }
+  return { adjustedTax: tax, applied };
+}
+
 /** Computes Potongan Cukai Bulanan (monthly tax deduction) using the cumulative method against projected annual chargeable income, applying rebates including zakat. */
 export function calculatePCB(input: PCBInput): PCBResult {
   const {
@@ -76,10 +105,14 @@ export function calculatePCB(input: PCBInput): PCBResult {
     );
   }
 
-  const annualTaxPayable = annualTaxForBracket(
+  let annualTaxPayable = annualTaxForBracket(
     bracket,
     projectedAnnualChargeableIncome,
   );
+
+  const { adjustedTax: annualTaxAfterThresholdRebates, applied: thresholdRebatesApplied } =
+    applyThresholdRebates(annualTaxPayable, projectedAnnualChargeableIncome, config.taxRebates);
+  annualTaxPayable = annualTaxAfterThresholdRebates;
 
   // Standard cumulative method: spread the annual liability over all 12
   // months, then reconcile against what's already been withheld this year.
@@ -97,7 +130,7 @@ export function calculatePCB(input: PCBInput): PCBResult {
   // Zakat offsets PCB directly as a rebate (docs/assumptions.md #8), capped
   // at both the config's rebate amount (if set) and the PCB actually owed
   // this month — never reported as "applied" beyond what there was to offset.
-  const rebatesApplied: Array<{ code: string; amount: Money }> = [];
+  const rebatesApplied: Array<{ code: string; amount: Money }> = [...thresholdRebatesApplied];
   const zakatRow =
     config.taxRebates.find((r) => r.code === "ZAKAT_REBATE") ?? null;
   if (zakatRow && zakatAmount.gt(0)) {
@@ -142,9 +175,15 @@ export function calculatePCB(input: PCBInput): PCBResult {
         `No tax bracket configured for chargeable income ${incomeWithBonus.toString()} (${residencyStatus}) — config gap, add an open-ended top bracket.`,
       );
     }
-    const annualTaxWithBonus = annualTaxForBracket(
-      bracketWithBonus,
+    // Re-apply the same threshold rebates against the bonus-inclusive
+    // income, since crossing the threshold (e.g. RM35,000) can disqualify
+    // a rebate that applied to the base income alone — keeps the marginal
+    // diff below consistent (both sides post-rebate) rather than
+    // overstating the bonus's incremental PCB by the rebate amount.
+    const { adjustedTax: annualTaxWithBonus } = applyThresholdRebates(
+      annualTaxForBracket(bracketWithBonus, incomeWithBonus),
       incomeWithBonus,
+      config.taxRebates,
     );
     const additionalPcbForBonus = Decimal.max(
       annualTaxWithBonus.minus(annualTaxPayable),

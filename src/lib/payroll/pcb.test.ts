@@ -160,6 +160,59 @@ describe("calculatePCB", () => {
     expect(result.bracketApplied?.ratePercent.toString()).toBe("25");
   });
 
+  it("applies an income-threshold rebate (e.g. Section 6A RM400) once against the annual liability, not per month", () => {
+    const rebateConfig = buildRealisticTestConfig({
+      taxRebates: [
+        { code: "ZAKAT_REBATE", amount: null, incomeThreshold: null },
+        { code: "INDIVIDUAL_REBATE_35K", amount: d(400), incomeThreshold: d(35000) },
+      ],
+    });
+
+    const result = calculatePCB({
+      // bracket 20000.01-35000 @3% base150: 150+(30000.01-20000.01)*0.03=450
+      projectedAnnualChargeableIncome: d(30000.01),
+      residencyStatus: "RESIDENT",
+      previousCumulativePcbPaid: d(0),
+      monthsElapsedInYear: 0,
+      monthsRemainingInYear: 12,
+      zakatAmount: d(0),
+      bonusOrIrregularPayment: null,
+      config: rebateConfig,
+    });
+
+    // annualTaxPayable before rebate = 450; rebate reduces the ANNUAL figure
+    // once (to 50), then /12 for the month — not subtracted from a single
+    // month's PCB the way zakat is.
+    expect(result.annualTaxPayable.toString()).toBe("50");
+    expect(result.monthlyPcbBeforeRebates.toString()).toBe("4.17"); // 50/12 rounded
+    expect(result.rebatesApplied).toHaveLength(1);
+    expect(result.rebatesApplied[0].code).toBe("INDIVIDUAL_REBATE_35K");
+    expect(result.rebatesApplied[0].amount.toString()).toBe("400");
+  });
+
+  it("does not apply the income-threshold rebate once chargeable income exceeds the threshold", () => {
+    const rebateConfig = buildRealisticTestConfig({
+      taxRebates: [
+        { code: "ZAKAT_REBATE", amount: null, incomeThreshold: null },
+        { code: "INDIVIDUAL_REBATE_35K", amount: d(400), incomeThreshold: d(35000) },
+      ],
+    });
+
+    const result = calculatePCB({
+      projectedAnnualChargeableIncome: d(158400.01),
+      residencyStatus: "RESIDENT",
+      previousCumulativePcbPaid: d(0),
+      monthsElapsedInYear: 0,
+      monthsRemainingInYear: 12,
+      zakatAmount: d(0),
+      bonusOrIrregularPayment: null,
+      config: rebateConfig,
+    });
+
+    expect(result.annualTaxPayable.toString()).toBe("24000");
+    expect(result.rebatesApplied).toEqual([]);
+  });
+
   it("throws a descriptive error when no bracket covers the chargeable income", () => {
     const gappyConfig = buildRealisticTestConfig({
       taxBrackets: [
