@@ -26,7 +26,23 @@ export async function updateConfigLifecycle(
   }
   const value = parsed.data;
 
-  await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx) => {
+    // At most one PayrollConfiguration may be isActive at a time — see
+    // createPayrollConfiguration's matching check.
+    if (value.isActive) {
+      const conflicting = await tx.payrollConfiguration.findFirst({
+        where: { isActive: true, id: { not: id } },
+      });
+      if (conflicting) {
+        return {
+          ok: false as const,
+          fieldErrors: {
+            isActive: [`${conflicting.version} is already active — deactivate it first.`],
+          },
+        };
+      }
+    }
+
     await tx.payrollConfiguration.update({
       where: { id },
       data: {
@@ -42,7 +58,9 @@ export async function updateConfigLifecycle(
       entityId: id,
       changesJson: value,
     });
+
+    return { ok: true as const };
   });
 
-  return { ok: true };
+  return result;
 }

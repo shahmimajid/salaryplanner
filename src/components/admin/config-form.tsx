@@ -170,16 +170,21 @@ export function ConfigForm({
                 </FormItem>
               )}
             />
-            <div className="flex items-center justify-between gap-3 rounded-lg border p-3 sm:col-span-2">
-              <Label htmlFor="isActive">Active</Label>
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="rounded-lg border p-3 sm:col-span-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel htmlFor="isActive">Active</FormLabel>
+                    <FormControl>
+                      <Switch id="isActive" checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             {retireSource ? (
               <div className="flex items-center gap-3 rounded-lg border p-3 sm:col-span-2">
                 <FormField

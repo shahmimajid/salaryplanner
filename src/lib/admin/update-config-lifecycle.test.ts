@@ -2,13 +2,17 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { ConfigLifecycleFormValues } from "@/components/admin/config-schema";
 
 const payrollConfigurationUpdate = vi.fn();
+const payrollConfigurationFindFirst = vi.fn();
 const auditLogCreate = vi.fn();
 
 vi.mock("@/lib/db/prisma", () => ({
   prisma: {
     $transaction: async (fn: (tx: unknown) => unknown) =>
       fn({
-        payrollConfiguration: { update: (...args: unknown[]) => payrollConfigurationUpdate(...args) },
+        payrollConfiguration: {
+          update: (...args: unknown[]) => payrollConfigurationUpdate(...args),
+          findFirst: (...args: unknown[]) => payrollConfigurationFindFirst(...args),
+        },
         auditLog: { create: (...args: unknown[]) => auditLogCreate(...args) },
       }),
   },
@@ -23,6 +27,7 @@ const VALID_INPUT: ConfigLifecycleFormValues = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  payrollConfigurationFindFirst.mockResolvedValue(null);
 });
 
 describe("updateConfigLifecycle", () => {
@@ -56,5 +61,39 @@ describe("updateConfigLifecycle", () => {
       where: { id: "config-1" },
       data: { isActive: true, effectiveTo: null },
     });
+  });
+
+  it("rejects activating a config while a different one is already active", async () => {
+    payrollConfigurationFindFirst.mockResolvedValueOnce({ id: "config-other", version: "2025.9" });
+
+    const result = await updateConfigLifecycle("user-1", "config-1", {
+      isActive: true,
+      effectiveTo: null,
+    });
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.fieldErrors.isActive?.[0]).toMatch(/2025\.9 is already active/);
+    }
+    expect(payrollConfigurationUpdate).not.toHaveBeenCalled();
+  });
+
+  it("excludes the config being updated from its own active-conflict check", async () => {
+    const result = await updateConfigLifecycle("user-1", "config-1", {
+      isActive: true,
+      effectiveTo: null,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(payrollConfigurationFindFirst).toHaveBeenCalledWith({
+      where: { isActive: true, id: { not: "config-1" } },
+    });
+  });
+
+  it("skips the active-conflict check entirely when deactivating", async () => {
+    const result = await updateConfigLifecycle("user-1", "config-1", VALID_INPUT);
+
+    expect(result.ok).toBe(true);
+    expect(payrollConfigurationFindFirst).not.toHaveBeenCalled();
   });
 });

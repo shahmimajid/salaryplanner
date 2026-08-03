@@ -107,3 +107,31 @@ test("admin creates a new configuration version, and it applies only going forwa
   await saveCalculation(page, "2026-03", "3000");
   await expect(page.getByText("RM 99.99").first()).toBeVisible();
 });
+
+test("rejects activating a second config while another is already active, without silently leaving a coverage gap", async ({
+  page,
+}) => {
+  const email = await signUp(page);
+  await promoteToAdmin(email);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await signIn(page, email);
+
+  await page.goto("/admin/new");
+  await expect(page.getByText(/Starting from/)).toBeVisible();
+
+  // Uncheck "Also retire" so the source (already active — whichever config
+  // is currently active in this test run) stays active — this new one
+  // would then be a second simultaneously-active config, which is exactly
+  // what's now rejected server-side.
+  await page.getByRole("checkbox", { name: /Also retire/ }).click();
+  const conflictVersion = `2026.2-conflict-${Date.now()}`;
+  await page.fill('input[name="version"]', conflictVersion);
+  await page.fill('input[name="effectiveFrom"]', "2026-02-01");
+
+  await page.getByRole("button", { name: "Create configuration" }).click();
+  await expect(page.getByText(/is already active — retire it or deactivate it first\./)).toBeVisible();
+
+  // Nothing was created — the conflicting version never shows up.
+  await page.goto("/admin");
+  await expect(page.getByText(conflictVersion)).toHaveCount(0);
+});

@@ -36,6 +36,23 @@ export async function createPayrollConfiguration(
 
   try {
     const configId = await prisma.$transaction(async (tx) => {
+      // At most one PayrollConfiguration may be isActive at a time (avoids
+      // the coverage confusion of two open-ended active rows). Creating a
+      // new active config while another is active is only allowed when
+      // that other config is the one being retired in this same call —
+      // retiring now also flips its isActive off, making it a clean swap.
+      if (value.isActive) {
+        const conflicting = await tx.payrollConfiguration.findFirst({
+          where: { isActive: true, id: { not: value.retirePreviousConfigId ?? undefined } },
+        });
+        if (conflicting) {
+          return {
+            ok: false as const,
+            error: `${conflicting.version} is already active — retire it or deactivate it first.`,
+          };
+        }
+      }
+
       const config = await tx.payrollConfiguration.create({
         data: {
           version: value.version,
@@ -59,7 +76,7 @@ export async function createPayrollConfiguration(
       if (value.retirePreviousConfigId) {
         await tx.payrollConfiguration.update({
           where: { id: value.retirePreviousConfigId },
-          data: { effectiveTo: dayBefore(value.effectiveFrom) },
+          data: { effectiveTo: dayBefore(value.effectiveFrom), isActive: false },
         });
       }
 
@@ -71,10 +88,14 @@ export async function createPayrollConfiguration(
         changesJson: value,
       });
 
-      return config.id;
+      return { ok: true as const, id: config.id };
     });
 
-    return { ok: true, id: configId };
+    if (!configId.ok) {
+      return { ok: false, fieldErrors: { isActive: [configId.error] } };
+    }
+
+    return { ok: true, id: configId.id };
   } catch (error) {
     if (
       error instanceof Prisma.PrismaClientKnownRequestError &&

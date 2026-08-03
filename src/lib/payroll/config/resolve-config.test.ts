@@ -53,7 +53,9 @@ describe("resolveConfig", () => {
 
     expect(findFirstMock).toHaveBeenCalledTimes(1);
     const callArgs = findFirstMock.mock.calls[0][0];
-    expect(callArgs.where.isActive).toBe(true);
+    // Deliberately not filtered by isActive — a retired config must still
+    // resolve for its own historical date range.
+    expect(callArgs.where.isActive).toBeUndefined();
     expect(callArgs.orderBy).toEqual({ effectiveFrom: "desc" });
     expect(callArgs.include).toMatchObject({
       epfRates: true,
@@ -78,11 +80,11 @@ describe("resolveConfig", () => {
     expect(result.effectiveTo).toBeNull();
   });
 
-  it("throws a descriptive error when no active configuration matches", async () => {
+  it("throws a descriptive error when no configuration's date range matches", async () => {
     findFirstMock.mockResolvedValueOnce(null);
 
     await expect(
       resolveConfig({ effectiveDate: "2026-06-15" }),
-    ).rejects.toThrow(/No active payroll configuration found/);
+    ).rejects.toThrow(/No payroll configuration covers/);
   });
 });

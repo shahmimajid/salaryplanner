@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -52,20 +52,25 @@ export function ConfigLifecycleForm({
             <CardTitle className="text-base">Lifecycle</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
-              <Label htmlFor="lifecycle-isActive">Active</Label>
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <Switch
-                    id="lifecycle-isActive"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem className="rounded-lg border p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <FormLabel htmlFor="lifecycle-isActive">Active</FormLabel>
+                    <FormControl>
+                      <Switch
+                        id="lifecycle-isActive"
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="effectiveTo"

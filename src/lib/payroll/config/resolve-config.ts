@@ -88,16 +88,26 @@ function mapConfigToSnapshot(config: ConfigWithRates): PayrollConfigSnapshot {
 }
 
 /**
- * Loads the single active PayrollConfiguration (and its rate/bracket/relief/
- * rebate rows) whose effective range covers the given date, and flattens it
- * into a PayrollConfigSnapshot.
+ * Loads the PayrollConfiguration (and its rate/bracket/relief/rebate rows)
+ * whose effective range covers the given date, and flattens it into a
+ * PayrollConfigSnapshot.
+ *
+ * Deliberately NOT filtered by isActive: that flag only marks which single
+ * config is the current canonical one (admin UI badge, /admin/new's default
+ * duplicate-from source, and the createPayrollConfiguration/
+ * updateConfigLifecycle single-active-config guard) — it has nothing to do
+ * with whether a config's own effectiveFrom/effectiveTo range is still a
+ * valid answer for a date inside it. A retired (isActive=false) config must
+ * keep resolving for its own historical window, e.g. entering a backdated
+ * salary for a month it covered — otherwise retiring the previous config
+ * when activating a new one would leave every earlier month with no
+ * resolvable config at all.
  */
 export async function resolveConfig(input: ResolveConfigInput): Promise<PayrollConfigSnapshot> {
   const date = new Date(input.effectiveDate);
 
   const config = await prisma.payrollConfiguration.findFirst({
     where: {
-      isActive: true,
       effectiveFrom: { lte: date },
       OR: [{ effectiveTo: null }, { effectiveTo: { gte: date } }],
     },
@@ -107,7 +117,7 @@ export async function resolveConfig(input: ResolveConfigInput): Promise<PayrollC
   });
 
   if (!config) {
-    throw new Error(`No active payroll configuration found for effective date ${input.effectiveDate}.`);
+    throw new Error(`No payroll configuration covers effective date ${input.effectiveDate}.`);
   }
 
   return mapConfigToSnapshot(config);

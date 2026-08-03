@@ -3,6 +3,7 @@ import type { PayrollConfigFormValues } from "@/components/admin/config-schema";
 
 const payrollConfigurationCreate = vi.fn();
 const payrollConfigurationUpdate = vi.fn();
+const payrollConfigurationFindFirst = vi.fn();
 const auditLogCreate = vi.fn();
 
 class FakePrismaClientKnownRequestError extends Error {
@@ -24,6 +25,7 @@ vi.mock("@/lib/db/prisma", () => ({
         payrollConfiguration: {
           create: (...args: unknown[]) => payrollConfigurationCreate(...args),
           update: (...args: unknown[]) => payrollConfigurationUpdate(...args),
+          findFirst: (...args: unknown[]) => payrollConfigurationFindFirst(...args),
         },
         auditLog: { create: (...args: unknown[]) => auditLogCreate(...args) },
       }),
@@ -80,6 +82,7 @@ const VALID_INPUT: PayrollConfigFormValues = {
 beforeEach(() => {
   vi.clearAllMocks();
   payrollConfigurationCreate.mockResolvedValue({ id: "config-new" });
+  payrollConfigurationFindFirst.mockResolvedValue(null);
 });
 
 describe("createPayrollConfiguration", () => {
@@ -126,8 +129,44 @@ describe("createPayrollConfiguration", () => {
     expect(result.ok).toBe(true);
     expect(payrollConfigurationUpdate).toHaveBeenCalledWith({
       where: { id: "config-old" },
-      data: { effectiveTo: new Date("2025-12-31T00:00:00.000Z") },
+      data: { effectiveTo: new Date("2025-12-31T00:00:00.000Z"), isActive: false },
     });
+  });
+
+  it("rejects activating a new config while a different one is already active", async () => {
+    payrollConfigurationFindFirst.mockResolvedValueOnce({ id: "config-other", version: "2025.9" });
+
+    const result = await createPayrollConfiguration("user-1", VALID_INPUT);
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.fieldErrors.isActive?.[0]).toMatch(/2025\.9 is already active/);
+    }
+    expect(payrollConfigurationCreate).not.toHaveBeenCalled();
+  });
+
+  it("allows activating a new config when the only other active one is the one being retired", async () => {
+    // The findFirst mock excludes retirePreviousConfigId via `id: { not }`, so
+    // simulating that correctly means resolving null here (the real query
+    // would exclude config-old and find nothing else active).
+    payrollConfigurationFindFirst.mockResolvedValueOnce(null);
+
+    const result = await createPayrollConfiguration("user-1", {
+      ...VALID_INPUT,
+      retirePreviousConfigId: "config-old",
+    });
+
+    expect(result.ok).toBe(true);
+    expect(payrollConfigurationFindFirst).toHaveBeenCalledWith({
+      where: { isActive: true, id: { not: "config-old" } },
+    });
+  });
+
+  it("skips the active-conflict check entirely when the new config isn't active", async () => {
+    const result = await createPayrollConfiguration("user-1", { ...VALID_INPUT, isActive: false });
+
+    expect(result.ok).toBe(true);
+    expect(payrollConfigurationFindFirst).not.toHaveBeenCalled();
   });
 
   it("maps a unique-version conflict to a field error", async () => {
