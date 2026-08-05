@@ -37,7 +37,17 @@ for real use:
 7. Full current-year tax relief schedule (self, spouse, per-child, EPF/life
    insurance, lifestyle, medical, SSPN, etc.) and amounts; and how a
    child-relief split between spouses (`childReliefClaims` percentages)
-   should be validated (e.g., must sum to 100% per child).
+   should be validated (e.g., must sum to 100% per child). **Partially
+   corrected 2026-08-05**: `EPF_LIFE_INSURANCE`'s cap was RM7,000 (a
+   pre-Budget-2019 combined EPF+life-insurance pool); real law has capped
+   EPF relief at RM4,000 on its own since then (this app has no separate
+   life-insurance-premium input, so the relief code now functions purely as
+   an EPF cap). Caught by comparing against a real user's payslip PCB
+   (RM3,025.30 for Jan 2025 vs the app's RM2,963.65); the RM4,000 cap closes
+   ~98% of the gap (to RM3,026.15), leaving a ~85 sen/month residual
+   attributed to item 6 (the simplified cumulative PCB formula vs LHDN's
+   actual Kaedah Pengiraan Berkomputer) — still open, needs the official
+   formula spec to close fully.
 8. Confirmation that zakat should be modeled as a **rebate** offsetting PCB
    directly (as designed in `TaxRebate`/`calculatePCB`) rather than a
    pre-tax deduction — the spec's wording ("zakat" listed alongside

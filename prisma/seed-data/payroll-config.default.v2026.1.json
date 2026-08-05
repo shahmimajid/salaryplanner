@@ -176,9 +176,9 @@
     },
     {
       "code": "EPF_LIFE_INSURANCE",
-      "label": "EPF and life insurance relief",
-      "maxAmount": 7000,
-      "description": null
+      "label": "EPF relief",
+      "maxAmount": 4000,
+      "description": "Since Budget 2019, EPF relief is capped at RM4,000 on its own — no longer a combined RM7,000 pool with life insurance premiums (which this app has no separate input for)."
     }
   ],
   "taxRebates": [
