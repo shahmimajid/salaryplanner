@@ -51,7 +51,19 @@ for real use:
     what effective date — affects `EPFRate.citizenshipStatus` seed rows.
 11. LINDUNG i-Saraan/24 Jam scheme is excluded by default per the spec; its
     premium table and eligibility rules need confirmation before it can be
-    offered as an opt-in deduction.
+    offered as an opt-in deduction. **Confirmed correct 2026-08-05**: this
+    also governs SOCSO's "Non-Employment Injury Scheme (SKBBK)" component —
+    PERKESO's contribution-rate PDF lists SKBBK amounts alongside the base
+    Employment Injury/Invalidity figures with no explicit opt-in/mandatory
+    labeling in the table itself, and an earlier config version
+    (`2026.2-verified-draft-2`) misread that as bundled into everyone's
+    default SOCSO contribution. A real user's payslip caught the error
+    (their actual Category 1 deduction was RM29.75 at the RM6,000+ ceiling,
+    not the RM74.40 that version computed) — corrected in
+    `2026.3-socso-invalidity-only`: Category 1's employee share is the
+    Invalidity component only, Category 2's is RM0 (no Invalidity component,
+    and its only other component is the same opt-in SKBBK scheme). SKBBK
+    itself is still not offered as an opt-in deduction — same open item.
 12. Official rounding conventions per statutory body (EPF Third Schedule
     bands are pre-rounded; SOCSO/EIS tables are pre-rounded; PCB rounding
     direction) are not yet documented — each rule must cite its source once
