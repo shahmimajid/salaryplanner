@@ -88,10 +88,12 @@ export function ConfigDetail({ config }: { config: PayrollConfigFormValues }) {
         <CardHeader>
           <CardTitle className="text-base">EPF wage bands</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
+        <CardContent className="max-h-96 overflow-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-muted-foreground border-b text-left">
+              <tr className="text-muted-foreground bg-background sticky top-0 border-b text-left">
+                <th className="py-1.5 pr-2">Citizenship</th>
+                <th className="py-1.5 pr-2">Age</th>
                 <th className="py-1.5 pr-2">Wage from</th>
                 <th className="py-1.5 pr-2">Wage to</th>
                 <th className="py-1.5 pr-2">Employee</th>
@@ -101,6 +103,10 @@ export function ConfigDetail({ config }: { config: PayrollConfigFormValues }) {
             <tbody>
               {config.epfWageBands.map((row, index) => (
                 <tr key={index} className="border-b last:border-0">
+                  <td className="py-1.5 pr-2">{CITIZENSHIP_LABELS[row.citizenshipStatus]}</td>
+                  <td className="py-1.5 pr-2">
+                    {row.minAge ?? "—"}–{row.maxAge ?? "—"}
+                  </td>
                   <td className="py-1.5 pr-2">{formatRinggit(row.wageFrom)}</td>
                   <td className="py-1.5 pr-2">{money(row.wageTo)}</td>
                   <td className="py-1.5 pr-2">{formatRinggit(row.employeeContribution)}</td>

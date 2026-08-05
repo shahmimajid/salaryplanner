@@ -17,13 +17,22 @@ export const epfRateRowSchema = z.object({
   notes: z.string().nullable(),
 });
 
-// Shared shape — reused verbatim for epfWageBands and eisRates, which are
-// structurally identical.
+// Shared shape — reused verbatim for socsoRates/eisRates, which are
+// structurally identical (no citizenship/age discriminator — unlike EPF,
+// SOCSO/EIS publish one table regardless of citizenship).
 export const wageBandRowSchema = z.object({
   wageFrom: z.number().min(0),
   wageTo: z.number().min(0).nullable(),
   employeeContribution: z.number().min(0),
   employerContribution: z.number().min(0),
+});
+
+// EPF publishes a separate fixed-amount wage-band table per Part
+// (citizenship + age band) — same discriminators as epfRateRowSchema.
+export const epfWageBandRowSchema = wageBandRowSchema.extend({
+  citizenshipStatus: z.enum(["CITIZEN", "PERMANENT_RESIDENT", "NON_CITIZEN"]),
+  minAge: z.number().int().min(0).max(120).nullable(),
+  maxAge: z.number().int().min(0).max(120).nullable(),
 });
 
 export const socsoRateRowSchema = wageBandRowSchema.extend({
@@ -62,7 +71,7 @@ export const payrollConfigFormSchema = z.object({
   sourceReference: z.string().min(1),
   notes: z.string().nullable(),
   epfRates: z.array(epfRateRowSchema).min(1),
-  epfWageBands: z.array(wageBandRowSchema).min(1),
+  epfWageBands: z.array(epfWageBandRowSchema).min(1),
   socsoRates: z.array(socsoRateRowSchema).min(1),
   eisRates: z.array(wageBandRowSchema).min(1),
   taxBrackets: z.array(taxBracketRowSchema).min(1),

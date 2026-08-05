@@ -40,6 +40,9 @@ export async function loadPayrollConfigurationForEdit(
       notes: r.notes,
     })),
     epfWageBands: config.epfWageBands.map((b) => ({
+      citizenshipStatus: b.citizenshipStatus,
+      minAge: b.minAge,
+      maxAge: b.maxAge,
       wageFrom: Number(b.wageFrom),
       wageTo: b.wageTo ? Number(b.wageTo) : null,
       employeeContribution: Number(b.employeeContribution),

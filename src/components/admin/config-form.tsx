@@ -207,7 +207,12 @@ export function ConfigForm({
         </Card>
 
         <EpfRatesSection />
-        <WageBandArraySection name="epfWageBands" title="EPF wage bands" description="Fixed-amount EPF contribution table for low-wage bands." />
+        <WageBandArraySection
+          name="epfWageBands"
+          title="EPF wage bands"
+          description="Fixed-amount EPF contribution table for wages under RM20,000 — one table per citizenship/age Part, per KWSP's Third Schedule."
+          withCitizenshipAge
+        />
         <WageBandArraySection
           name="socsoRates"
           title="SOCSO rates"

@@ -19,21 +19,32 @@ const SOCSO_CATEGORY_LABELS = {
   CATEGORY_2: "Category 2 (employment injury only)",
 } as const;
 
+const CITIZENSHIP_LABELS = {
+  CITIZEN: "Citizen",
+  PERMANENT_RESIDENT: "Permanent resident",
+  NON_CITIZEN: "Non-citizen",
+} as const;
+
 /**
  * EPFWageBand, EISRate and SOCSORate share the same wage/contribution row
- * shape — SOCSORate additionally has a `category` enum. One parameterized
- * section covers all 3 rather than 3 near-identical components.
+ * shape — SOCSORate additionally has a `category` enum, EPFWageBand
+ * additionally has citizenship+age discriminators (KWSP publishes a
+ * separate fixed-amount table per Part, same as its percentage rates —
+ * see epf-rates-section.tsx). One parameterized section covers all 3
+ * rather than 3 near-identical components.
  */
 export function WageBandArraySection({
   name,
   title,
   description,
   withCategory = false,
+  withCitizenshipAge = false,
 }: {
   name: "epfWageBands" | "eisRates" | "socsoRates";
   title: string;
   description: string;
   withCategory?: boolean;
+  withCitizenshipAge?: boolean;
 }) {
   const form = useFormContext<PayrollConfigFormValues>();
   const { fields, append, remove } = useFieldArray({ control: form.control, name });
@@ -76,6 +87,43 @@ export function WageBandArraySection({
                     )}
                   />
                 ) : null}
+                {withCitizenshipAge ? (
+                  <>
+                    <FormField
+                      control={form.control}
+                      name={`epfWageBands.${index}.citizenshipStatus`}
+                      render={({ field }) => (
+                        <FormItem className="sm:col-span-5">
+                          <FormLabel>Citizenship</FormLabel>
+                          <FormControl>
+                            <select
+                              className="border-input h-9 rounded-md border bg-transparent px-3 text-sm"
+                              value={field.value}
+                              onChange={field.onChange}
+                            >
+                              {Object.entries(CITIZENSHIP_LABELS).map(([value, label]) => (
+                                <option key={value} value={value}>
+                                  {label}
+                                </option>
+                              ))}
+                            </select>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <NumberField<PayrollConfigFormValues>
+                      name={`epfWageBands.${index}.minAge`}
+                      label="Min age (blank = none)"
+                      step="1"
+                    />
+                    <NumberField<PayrollConfigFormValues>
+                      name={`epfWageBands.${index}.maxAge`}
+                      label="Max age (blank = none)"
+                      step="1"
+                    />
+                  </>
+                ) : null}
                 <NumberField<PayrollConfigFormValues> name={`${name}.${index}.wageFrom`} label="Wage from (RM)" />
                 <NumberField<PayrollConfigFormValues> name={`${name}.${index}.wageTo`} label="Wage to (RM, blank = no cap)" />
                 <NumberField<PayrollConfigFormValues>
@@ -110,12 +158,22 @@ export function WageBandArraySection({
                         employeeContribution: 0,
                         employerContribution: 0,
                       }
-                    : {
-                        wageFrom: 0,
-                        wageTo: null,
-                        employeeContribution: 0,
-                        employerContribution: 0,
-                      }) as never,
+                    : withCitizenshipAge
+                      ? {
+                          citizenshipStatus: "CITIZEN",
+                          minAge: null,
+                          maxAge: null,
+                          wageFrom: 0,
+                          wageTo: null,
+                          employeeContribution: 0,
+                          employerContribution: 0,
+                        }
+                      : {
+                          wageFrom: 0,
+                          wageTo: null,
+                          employeeContribution: 0,
+                          employerContribution: 0,
+                        }) as never,
                 )
               }
             >
