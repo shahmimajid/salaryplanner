@@ -1,6 +1,6 @@
 import Decimal from "decimal.js";
 import type { Money, PayrollConfigSnapshot, ResidencyStatus } from "./types";
-import { roundMoney } from "./rounding";
+import { roundMoney, roundPcb } from "./rounding";
 
 export interface PCBInput {
   projectedAnnualChargeableIncome: Money;
@@ -21,33 +21,37 @@ export interface PCBResult {
   bracketApplied: { from: Money; to: Money | null; ratePercent: Money } | null;
 }
 
+/**
+ * LHDN's PCB formula subtracts "M" (Table 1's "Amount of the first
+ * chargeable income for every range" — e.g. M=100,000 for the displayed
+ * range "100,001-400,000") from chargeable income, not the range's display
+ * lower bound itself. M is exactly the *previous* bracket's upper bound
+ * (0 for the first bracket), so it's derived from bracket ordering rather
+ * than stored — robust to either boundary convention this codebase's
+ * config data has used (e.g. "100001.00" vs "100000.01").
+ */
 function findBracket(
   taxBrackets: PayrollConfigSnapshot["taxBrackets"],
   residencyStatus: ResidencyStatus,
   chargeableIncome: Money,
-) {
-  return (
-    taxBrackets
-      .filter((b) => b.residencyStatus === residencyStatus)
-      .find(
-        (b) =>
-          chargeableIncome.gte(b.chargeableIncomeFrom) &&
-          (b.chargeableIncomeTo === null ||
-            chargeableIncome.lte(b.chargeableIncomeTo)),
-      ) ?? null
+): { bracket: PayrollConfigSnapshot["taxBrackets"][number]; m: Money } | null {
+  const rows = taxBrackets
+    .filter((b) => b.residencyStatus === residencyStatus)
+    .sort((a, b) => a.chargeableIncomeFrom.comparedTo(b.chargeableIncomeFrom));
+  const index = rows.findIndex(
+    (b) =>
+      chargeableIncome.gte(b.chargeableIncomeFrom) &&
+      (b.chargeableIncomeTo === null || chargeableIncome.lte(b.chargeableIncomeTo)),
   );
+  if (index === -1) return null;
+  const m = index === 0 ? new Decimal(0) : (rows[index - 1].chargeableIncomeTo ?? new Decimal(0));
+  return { bracket: rows[index], m };
 }
 
-function annualTaxForBracket(
-  bracket: NonNullable<ReturnType<typeof findBracket>>,
-  chargeableIncome: Money,
-): Money {
+function annualTaxForBracket(match: NonNullable<ReturnType<typeof findBracket>>, chargeableIncome: Money): Money {
   return Decimal.max(
-    bracket.cumulativeTaxBase.plus(
-      chargeableIncome
-        .minus(bracket.chargeableIncomeFrom)
-        .times(bracket.ratePercent)
-        .div(100),
+    match.bracket.cumulativeTaxBase.plus(
+      chargeableIncome.minus(match.m).times(match.bracket.ratePercent).div(100),
     ),
     0,
   );
@@ -94,19 +98,20 @@ export function calculatePCB(input: PCBInput): PCBResult {
     config,
   } = input;
 
-  const bracket = findBracket(
+  const match = findBracket(
     config.taxBrackets,
     residencyStatus,
     projectedAnnualChargeableIncome,
   );
-  if (!bracket) {
+  if (!match) {
     throw new Error(
       `No tax bracket configured for chargeable income ${projectedAnnualChargeableIncome.toString()} (${residencyStatus}) — config gap, add an open-ended top bracket.`,
     );
   }
+  const { bracket } = match;
 
   let annualTaxPayable = annualTaxForBracket(
-    bracket,
+    match,
     projectedAnnualChargeableIncome,
   );
 
@@ -165,12 +170,12 @@ export function calculatePCB(input: PCBInput): PCBResult {
     const incomeWithBonus = projectedAnnualChargeableIncome.plus(
       bonusOrIrregularPayment,
     );
-    const bracketWithBonus = findBracket(
+    const matchWithBonus = findBracket(
       config.taxBrackets,
       residencyStatus,
       incomeWithBonus,
     );
-    if (!bracketWithBonus) {
+    if (!matchWithBonus) {
       throw new Error(
         `No tax bracket configured for chargeable income ${incomeWithBonus.toString()} (${residencyStatus}) — config gap, add an open-ended top bracket.`,
       );
@@ -181,7 +186,7 @@ export function calculatePCB(input: PCBInput): PCBResult {
     // diff below consistent (both sides post-rebate) rather than
     // overstating the bonus's incremental PCB by the rebate amount.
     const { adjustedTax: annualTaxWithBonus } = applyThresholdRebates(
-      annualTaxForBracket(bracketWithBonus, incomeWithBonus),
+      annualTaxForBracket(matchWithBonus, incomeWithBonus),
       incomeWithBonus,
       config.taxRebates,
     );
@@ -199,7 +204,7 @@ export function calculatePCB(input: PCBInput): PCBResult {
       code: r.code,
       amount: roundMoney(r.amount),
     })),
-    currentMonthPcb: roundMoney(currentMonthPcb),
+    currentMonthPcb: roundPcb(currentMonthPcb),
     bracketApplied: {
       from: roundMoney(bracket.chargeableIncomeFrom),
       to:

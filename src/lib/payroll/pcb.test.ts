@@ -213,6 +213,62 @@ describe("calculatePCB", () => {
     expect(result.rebatesApplied).toEqual([]);
   });
 
+  it("subtracts M as the previous bracket's upper bound, not this bracket's own lower bound (LHDN MTD spec Table 1)", () => {
+    // Table 1's displayed range "100,001-400,000" uses M=100,000, not
+    // 100,001 — M is the previous bracket's chargeableIncomeTo.
+    const officialBracketsConfig = buildRealisticTestConfig({
+      taxBrackets: [
+        {
+          residencyStatus: "RESIDENT",
+          chargeableIncomeFrom: d(0),
+          chargeableIncomeTo: d(100000),
+          ratePercent: d(0),
+          cumulativeTaxBase: d(0),
+        },
+        {
+          residencyStatus: "RESIDENT",
+          chargeableIncomeFrom: d(100001),
+          chargeableIncomeTo: null,
+          ratePercent: d(25),
+          cumulativeTaxBase: d(9400),
+        },
+      ],
+    });
+
+    const result = calculatePCB({
+      projectedAnnualChargeableIncome: d(207656),
+      residencyStatus: "RESIDENT",
+      previousCumulativePcbPaid: d(0),
+      monthsElapsedInYear: 0,
+      monthsRemainingInYear: 12,
+      zakatAmount: d(0),
+      bonusOrIrregularPayment: null,
+      config: officialBracketsConfig,
+    });
+
+    // (207656 - 100000) * 25% + 9400 = 36314 — using 100,001 instead would
+    // give 36313.75.
+    expect(result.annualTaxPayable.toString()).toBe("36314");
+  });
+
+  it("rounds the final PCB up to the next 5 sen (LHDN MTD spec), not to the nearest cent", () => {
+    const result = calculatePCB({
+      // annualTaxPayable=36314.02 (chosen to leave a non-5-sen remainder
+      // after dividing by 12), monthly=3026.1683... -> truncates to
+      // 3026.16 -> rounds up to 3026.20, not 3026.17.
+      projectedAnnualChargeableIncome: d(207656.08),
+      residencyStatus: "RESIDENT",
+      previousCumulativePcbPaid: d(0),
+      monthsElapsedInYear: 0,
+      monthsRemainingInYear: 12,
+      zakatAmount: d(0),
+      bonusOrIrregularPayment: null,
+      config,
+    });
+
+    expect(result.currentMonthPcb.toString()).toBe("3026.2");
+  });
+
   it("throws a descriptive error when no bracket covers the chargeable income", () => {
     const gappyConfig = buildRealisticTestConfig({
       taxBrackets: [

@@ -19,3 +19,15 @@ export function roundMoney(value: Money, dp: number = MONEY_DP): Money {
 export function roundRate(value: Money, dp: number = RATE_DP): Money {
   return value.toDecimalPlaces(dp, Decimal.ROUND_HALF_UP);
 }
+
+/**
+ * LHDN's official PCB rounding rule (Specification for MTD Calculations
+ * Using Computerized Calculation, Terms and Conditions #1-2): truncate to
+ * 2dp (never round), then round UP to the next 5 sen — e.g. 287.02 -> 287.05,
+ * 152.06 -> 152.10. Distinct from roundMoney's ROUND_HALF_UP-to-the-cent,
+ * which the rest of the engine uses.
+ */
+export function roundPcb(value: Money): Money {
+  const truncated = value.toDecimalPlaces(MONEY_DP, Decimal.ROUND_DOWN);
+  return truncated.dividedBy(0.05).toDecimalPlaces(0, Decimal.ROUND_UP).times(0.05).toDecimalPlaces(MONEY_DP);
+}
