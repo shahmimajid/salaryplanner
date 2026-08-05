@@ -127,4 +127,5 @@ export interface PayrollProfileSnapshot {
   epfEmployeeRatePercent: Money;
   lindung24JamOptIn: boolean;
   zakatEnabled: boolean;
+  claimsSocsoRelief: boolean;
 }

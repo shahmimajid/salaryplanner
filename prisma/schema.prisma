@@ -172,6 +172,10 @@ model PayrollProfile {
   epfEmployeeRatePercent Decimal @default(11.000) @db.Decimal(6, 3) @map("epf_employee_rate_percent")
   lindung24JamOptIn      Boolean @default(false) @map("lindung_24_jam_opt_in")
   zakatEnabled           Boolean @default(false) @map("zakat_enabled")
+  // Whether a Form TP1 claiming the SOCSO contribution relief (LHDN MTD
+  // spec, up to RM350/year) has been filed with the employer — this relief
+  // is optional/TP1-gated, not automatic like SELF/SPOUSE/CHILD/EPF.
+  claimsSocsoRelief      Boolean @default(false) @map("claims_socso_relief")
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")

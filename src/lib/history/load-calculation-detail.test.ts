@@ -53,6 +53,7 @@ const LIVE_PROFILE_ROW = {
   epfEmployeeRatePercent: d(999), // deliberately different from the pinned snapshot below
   lindung24JamOptIn: false,
   zakatEnabled: false,
+  claimsSocsoRelief: false,
 };
 
 const PINNED_PROFILE_SNAPSHOT = {
@@ -66,6 +67,7 @@ const PINNED_PROFILE_SNAPSHOT = {
   epfEmployeeRatePercent: "11", // stored as a string, per toStoredProfileSnapshotJson
   lindung24JamOptIn: false,
   zakatEnabled: false,
+  claimsSocsoRelief: false,
 };
 
 function entryRow(profileSnapshot: unknown) {

@@ -19,6 +19,7 @@ export const profileFormSchema = z.object({
   epfEmployeeRatePercent: z.number().min(0).max(100),
   lindung24JamOptIn: z.boolean(),
   zakatEnabled: z.boolean(),
+  claimsSocsoRelief: z.boolean(),
 });
 
 export type ProfileFormValues = z.infer<typeof profileFormSchema>;

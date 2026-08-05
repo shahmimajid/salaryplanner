@@ -117,6 +117,7 @@ export function runSalaryPipeline(
   const annualIncome = calculateAnnualTaxableIncome({
     currentMonthGrossTaxableIncome: gross.grossTaxableIncome.minus(input.bonus),
     currentMonthEpfEmployee: epf.employeeContribution,
+    currentMonthSocsoEmployee: socso.employeeContribution,
     previousCumulativeIncomeForYear: input.previousCumulativeIncomeForYear,
     monthsRemainingInYear,
     profile: input.profile,

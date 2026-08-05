@@ -45,6 +45,7 @@ const PROFILE_ROW = {
   epfEmployeeRatePercent: d(11),
   lindung24JamOptIn: false,
   zakatEnabled: false,
+  claimsSocsoRelief: false,
 };
 
 const CONFIG_ROW = {

@@ -15,7 +15,7 @@ describe("loadLocalPayrollConfig", () => {
     expect(config.socsoRates).toHaveLength(2);
     expect(config.eisRates).toHaveLength(1);
     expect(config.taxBrackets).toHaveLength(11);
-    expect(config.taxReliefs).toHaveLength(4);
+    expect(config.taxReliefs).toHaveLength(5);
     expect(config.taxRebates).toHaveLength(1);
 
     expect(config.epfRates[0].employeeRatePercent).toBeInstanceOf(Decimal);

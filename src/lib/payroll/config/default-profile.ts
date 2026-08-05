@@ -25,4 +25,5 @@ export const DEFAULT_PAYROLL_PROFILE: PayrollProfileSnapshot = {
   epfEmployeeRatePercent: new Decimal(11),
   lindung24JamOptIn: false,
   zakatEnabled: false,
+  claimsSocsoRelief: false,
 };

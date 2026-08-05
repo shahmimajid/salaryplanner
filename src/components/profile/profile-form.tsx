@@ -229,6 +229,23 @@ export function ProfileForm({
                 )}
               />
             </div>
+
+            <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+              <Label htmlFor="claimsSocsoRelief">
+                Claims SOCSO relief (Form TP1 filed with employer)
+              </Label>
+              <FormField
+                control={form.control}
+                name="claimsSocsoRelief"
+                render={({ field }) => (
+                  <Switch
+                    id="claimsSocsoRelief"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                )}
+              />
+            </div>
           </CardContent>
         </Card>
 

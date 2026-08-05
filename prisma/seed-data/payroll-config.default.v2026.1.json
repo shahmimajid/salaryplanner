@@ -179,6 +179,12 @@
       "label": "EPF relief",
       "maxAmount": 4000,
       "description": "Since Budget 2019, EPF relief is capped at RM4,000 on its own — no longer a combined RM7,000 pool with life insurance premiums (which this app has no separate input for)."
+    },
+    {
+      "code": "SOCSO_RELIEF",
+      "label": "SOCSO contribution relief",
+      "maxAmount": 350,
+      "description": "TP1-optional relief (LHDN MTD spec) for SOCSO contributions, up to RM350/year — only applied when PayrollProfile.claimsSocsoRelief is true."
     }
   ],
   "taxRebates": [

@@ -11,6 +11,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(2099.68),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile(),
@@ -40,6 +41,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ spouseHasIncome: true }),
@@ -52,6 +54,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
@@ -67,6 +70,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
@@ -87,6 +91,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
@@ -101,10 +106,53 @@ describe("calculateAnnualTaxableIncome", () => {
     ).toBe(false);
   });
 
+  it("omits SOCSO_RELIEF by default (claimsSocsoRelief: false)", () => {
+    const result = calculateAnnualTaxableIncome({
+      currentMonthGrossTaxableIncome: d(19388),
+      currentMonthEpfEmployee: d(2134),
+      currentMonthSocsoEmployee: d(29.75),
+      previousCumulativeIncomeForYear: d(0),
+      monthsRemainingInYear: 12,
+      profile: buildTestProfile(),
+      config,
+    });
+    expect(result.reliefBreakdown.some((r) => r.code === "SOCSO_RELIEF")).toBe(false);
+  });
+
+  it("applies SOCSO_RELIEF for this month's contribution only when claimsSocsoRelief is true (TP1-gated, not annualized like EPF)", () => {
+    const result = calculateAnnualTaxableIncome({
+      currentMonthGrossTaxableIncome: d(19388),
+      currentMonthEpfEmployee: d(2134),
+      currentMonthSocsoEmployee: d(29.75),
+      previousCumulativeIncomeForYear: d(0),
+      monthsRemainingInYear: 12,
+      profile: buildTestProfile({ claimsSocsoRelief: true }),
+      config,
+    });
+    const socso = result.reliefBreakdown.find((r) => r.code === "SOCSO_RELIEF")!;
+    expect(socso).toBeDefined();
+    expect(socso.amountApplied.toString()).toBe("29.75"); // this month only, not x12
+  });
+
+  it("caps SOCSO_RELIEF at the config's maxAmount", () => {
+    const result = calculateAnnualTaxableIncome({
+      currentMonthGrossTaxableIncome: d(19388),
+      currentMonthEpfEmployee: d(2134),
+      currentMonthSocsoEmployee: d(500), // exceeds the RM350 cap
+      previousCumulativeIncomeForYear: d(0),
+      monthsRemainingInYear: 12,
+      profile: buildTestProfile({ claimsSocsoRelief: true }),
+      config,
+    });
+    const socso = result.reliefBreakdown.find((r) => r.code === "SOCSO_RELIEF")!;
+    expect(socso.amountApplied.toString()).toBe("350");
+  });
+
   it("gives zero reliefs to non-residents; chargeable income equals gross", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(2099.68),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ residencyStatus: "NON_RESIDENT" }),
@@ -120,6 +168,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(1000),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(5000), // 5 months already paid at 1000/mo
       monthsRemainingInYear: 7,
       profile: buildTestProfile({ residencyStatus: "NON_RESIDENT" }), // isolate from reliefs
@@ -132,6 +181,7 @@ describe("calculateAnnualTaxableIncome", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(500),
       currentMonthEpfEmployee: d(0),
+      currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
       monthsRemainingInYear: 1,
       profile: buildTestProfile(),

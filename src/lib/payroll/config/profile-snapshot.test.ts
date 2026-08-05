@@ -35,6 +35,7 @@ describe("toPayrollProfileSnapshot", () => {
     epfEmployeeRatePercent: new Decimal(11),
     lindung24JamOptIn: false,
     zakatEnabled: false,
+    claimsSocsoRelief: false,
   };
 
   it("converts a persisted row into a PayrollProfileSnapshot", () => {
@@ -66,6 +67,7 @@ describe("toStoredProfileSnapshotJson / fromStoredProfileSnapshot", () => {
     epfEmployeeRatePercent: new Decimal(9),
     lindung24JamOptIn: false,
     zakatEnabled: true,
+    claimsSocsoRelief: true,
   };
 
   it("round-trips a snapshot through storage-JSON and back", () => {
@@ -77,6 +79,7 @@ describe("toStoredProfileSnapshotJson / fromStoredProfileSnapshot", () => {
     expect(restored.numberOfChildren).toBe(2);
     expect(restored.childReliefClaims).toEqual(snapshot.childReliefClaims);
     expect(restored.zakatEnabled).toBe(true);
+    expect(restored.claimsSocsoRelief).toBe(true);
   });
 
   it("serializes epfEmployeeRatePercent as a string, not a Decimal object", () => {

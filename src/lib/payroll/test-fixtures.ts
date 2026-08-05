@@ -183,6 +183,7 @@ export function buildRealisticTestConfig(
       { code: "SPOUSE", maxAmount: d(4000) },
       { code: "CHILD_BELOW_18", maxAmount: d(2000) },
       { code: "EPF_LIFE_INSURANCE", maxAmount: d(7000) },
+      { code: "SOCSO_RELIEF", maxAmount: d(350) },
     ],
     taxRebates: [{ code: "ZAKAT_REBATE", amount: null, incomeThreshold: null }],
   };
@@ -209,6 +210,7 @@ export function buildTestProfile(
     epfEmployeeRatePercent: d(11),
     lindung24JamOptIn: false,
     zakatEnabled: false,
+    claimsSocsoRelief: false,
   };
 
   return { ...base, ...overrides };

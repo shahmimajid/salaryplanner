@@ -36,6 +36,7 @@ export async function updatePayrollProfile(
       epfEmployeeRatePercent: value.epfEmployeeRatePercent.toString(),
       lindung24JamOptIn: value.lindung24JamOptIn,
       zakatEnabled: value.zakatEnabled,
+      claimsSocsoRelief: value.claimsSocsoRelief,
     },
   });
 

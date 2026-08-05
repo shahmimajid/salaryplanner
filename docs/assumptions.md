@@ -34,6 +34,35 @@ for real use:
    Pengiraan Berkomputer) or the published PCB schedule tables, including
    the separate "additional remuneration" (bonus/commission) PCB method —
    needs the current official LHDN PCB computation specification.
+   **Partially corrected 2026-08-05**: obtained LHDN's official "Specification
+   for Monthly Tax Deduction (MTD) Calculations Using Computerized
+   Calculation" (2026 edition) and fixed two confirmed bugs against it —
+   (a) `calculatePCB` rounded to the nearest cent (ROUND_HALF_UP); the
+   official rule is to truncate to 2dp then round UP to the next 5 sen
+   (`roundPcb` in `rounding.ts`); (b) `annualTaxForBracket` subtracted the
+   bracket's own `chargeableIncomeFrom` (e.g. RM100,001) as "M", but the
+   spec's Table 1 uses the *previous* bracket's upper bound (RM100,000) —
+   `findBracket` now derives M from bracket ordering instead. Verified
+   against a real payslip (Jan 2025, RM19,388 salary): starting from a
+   RM61.65/month gap, item 7's EPF-relief-cap fix plus these two
+   rounding/bracket fixes narrowed it to RM0.90/month. Also added a
+   `SOCSO_RELIEF` tax-relief item and `PayrollProfile.claimsSocsoRelief`
+   (LHDN's spec lists a TP1-optional relief for SOCSO contributions, up to
+   RM350/year) — modeled as *this month's* contribution only, not
+   annualized like EPF, since the spec's LP1/∑LP terms accrue progressively
+   rather than being forward-projected; off by default, and does not yet
+   track a `previousCumulativeSocsoReliefClaimed` the way EPF relief would
+   need to for correctness after month 1. Tested this against the same
+   real payslip on the hypothesis the user had filed TP1 claiming it (would
+   have narrowed the gap to RM0.25/month) — the user then clarified they
+   file Form B annually rather than submitting TP1 to their employer, so
+   TP1-only reliefs would NOT show up in PCB withholding at all; the
+   feature stays (legitimate and correctly sourced for users who genuinely
+   filed TP1), but the RM0.90/month residual for this specific case is
+   unconfirmed, not resolved by it. Also still open: the bonus/lump-sum
+   method (item 15) and the cumulative method used for non-January months
+   still being simplified, not the official Kaedah Pengiraan Berkomputer
+   formula's `n+1` divisor recomputed fresh each month.
 7. Full current-year tax relief schedule (self, spouse, per-child, EPF/life
    insurance, lifestyle, medical, SSPN, etc.) and amounts; and how a
    child-relief split between spouses (`childReliefClaims` percentages)

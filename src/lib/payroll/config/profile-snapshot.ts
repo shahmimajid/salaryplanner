@@ -23,6 +23,7 @@ export function defaultPayrollProfileCreateData(): Prisma.PayrollProfileCreateWi
     epfEmployeeRatePercent: DEFAULT_PAYROLL_PROFILE.epfEmployeeRatePercent.toString(),
     lindung24JamOptIn: DEFAULT_PAYROLL_PROFILE.lindung24JamOptIn,
     zakatEnabled: DEFAULT_PAYROLL_PROFILE.zakatEnabled,
+    claimsSocsoRelief: DEFAULT_PAYROLL_PROFILE.claimsSocsoRelief,
   };
 }
 
@@ -52,6 +53,7 @@ export function toPayrollProfileSnapshot(row: {
   epfEmployeeRatePercent: Prisma.Decimal;
   lindung24JamOptIn: boolean;
   zakatEnabled: boolean;
+  claimsSocsoRelief: boolean;
 }): PayrollProfileSnapshot {
   return {
     citizenshipStatus: row.citizenshipStatus,
@@ -64,6 +66,7 @@ export function toPayrollProfileSnapshot(row: {
     epfEmployeeRatePercent: new Decimal(row.epfEmployeeRatePercent.toString()),
     lindung24JamOptIn: row.lindung24JamOptIn,
     zakatEnabled: row.zakatEnabled,
+    claimsSocsoRelief: row.claimsSocsoRelief,
   };
 }
 
@@ -81,6 +84,7 @@ const storedProfileSnapshotSchema = z.object({
   epfEmployeeRatePercent: z.string(),
   lindung24JamOptIn: z.boolean(),
   zakatEnabled: z.boolean(),
+  claimsSocsoRelief: z.boolean(),
 });
 
 /**

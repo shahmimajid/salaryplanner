@@ -25,6 +25,7 @@ const VALID_INPUT: ProfileFormValues = {
   epfEmployeeRatePercent: 9,
   lindung24JamOptIn: false,
   zakatEnabled: false,
+  claimsSocsoRelief: false,
 };
 
 beforeEach(() => {

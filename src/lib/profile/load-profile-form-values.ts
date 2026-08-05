@@ -21,5 +21,6 @@ export async function loadPayrollProfileFormValues(userId: string): Promise<Prof
     epfEmployeeRatePercent: Number(row.epfEmployeeRatePercent),
     lindung24JamOptIn: row.lindung24JamOptIn,
     zakatEnabled: row.zakatEnabled,
+    claimsSocsoRelief: row.claimsSocsoRelief,
   };
 }

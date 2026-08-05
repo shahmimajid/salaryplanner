@@ -33,6 +33,7 @@ describe("loadPayrollProfileFormValues", () => {
       epfEmployeeRatePercent: new Decimal(11),
       lindung24JamOptIn: false,
       zakatEnabled: false,
+      claimsSocsoRelief: false,
     });
 
     const result = await loadPayrollProfileFormValues("user-1");
@@ -55,6 +56,7 @@ describe("loadPayrollProfileFormValues", () => {
       epfEmployeeRatePercent: new Decimal(11),
       lindung24JamOptIn: false,
       zakatEnabled: false,
+      claimsSocsoRelief: false,
     });
 
     await expect(loadPayrollProfileFormValues("user-1")).rejects.toThrow();

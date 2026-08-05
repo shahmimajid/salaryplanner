@@ -9,6 +9,7 @@ import { roundMoney } from "./rounding";
 export interface AnnualTaxableIncomeInput {
   currentMonthGrossTaxableIncome: Money;
   currentMonthEpfEmployee: Money; // deductible up to relief cap
+  currentMonthSocsoEmployee: Money; // TP1-gated relief, this month's contribution only — see SOCSO_RELIEF below
   previousCumulativeIncomeForYear: Money;
   monthsRemainingInYear: number; // for projecting annualized income
   profile: PayrollProfileSnapshot;
@@ -36,6 +37,7 @@ export function calculateAnnualTaxableIncome(
   const {
     currentMonthGrossTaxableIncome,
     currentMonthEpfEmployee,
+    currentMonthSocsoEmployee,
     previousCumulativeIncomeForYear,
     monthsRemainingInYear,
     profile,
@@ -102,6 +104,26 @@ export function calculateAnnualTaxableIncome(
           code: "EPF_LIFE_INSURANCE",
           amountApplied: applied,
         });
+      }
+    }
+
+    // SOCSO contribution relief (LHDN MTD spec, up to RM350/year) is a
+    // TP1-optional deduction, not automatic like SELF/SPOUSE/CHILD/EPF —
+    // gated behind profile.claimsSocsoRelief. Per the spec's own formula
+    // (LP1 = "allowable deductions for the current month"), TP1-optional
+    // deductions credit only what's been claimed so far, month by month —
+    // unlike EPF's forward-projected relief, this uses just this month's
+    // contribution, not an annualized projection. Correct for month 1 of
+    // the year; understates the full-year relief for later months since
+    // there's no previousCumulativeSocsoReliefClaimed input yet to track
+    // what earlier months already claimed (same class of gap as item 18).
+    if (profile.claimsSocsoRelief) {
+      const socsoReliefRow = findRelief(config.taxReliefs, "SOCSO_RELIEF");
+      if (socsoReliefRow && socsoReliefRow.maxAmount.gt(0)) {
+        const applied = Decimal.min(currentMonthSocsoEmployee, socsoReliefRow.maxAmount);
+        if (applied.gt(0)) {
+          reliefBreakdown.push({ code: "SOCSO_RELIEF", amountApplied: applied });
+        }
       }
     }
 
