@@ -55,6 +55,11 @@ export function ResultsPanel({ data }: { data: SalaryCalculationViewModel }) {
             tooltip="Employees Provident Fund — mandatory retirement savings contribution."
           />
           <Row
+            label="EPF (employer)"
+            value={formatRinggit(data.epfEmployer)}
+            tooltip="Your employer's EPF contribution — for reference only, paid on top of your salary, not deducted from it or included in the totals below. Shown to make comparing against your actual payslip easier."
+          />
+          <Row
             label={`SOCSO (employee)${data.socsoMaxReached ? " · max reached" : ""}`}
             value={formatRinggit(data.socso)}
             tooltip="Social Security Organisation — insurance for employment injury/invalidity, capped at a statutory wage ceiling."

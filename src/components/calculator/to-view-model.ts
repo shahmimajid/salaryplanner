@@ -13,6 +13,7 @@ function rate(value: Money): string {
 export interface SalaryCalculationViewModel {
   grossSalary: string;
   epf: string;
+  epfEmployer: string;
   socso: string;
   socsoMaxReached: boolean;
   eis: string;
@@ -65,6 +66,7 @@ export function toSalaryCalculationViewModel(
   return {
     grossSalary: money(w.gross.grossIncomeTotal),
     epf: money(w.epf.employeeContribution),
+    epfEmployer: money(w.epf.employerContribution),
     socso: money(w.socso.employeeContribution),
     socsoMaxReached: w.socso.isMaxContributionReached,
     eis: money(w.eis.employeeContribution),

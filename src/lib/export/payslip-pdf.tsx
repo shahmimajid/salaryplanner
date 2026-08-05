@@ -112,6 +112,9 @@ export async function renderPayslipPdf(
           <Text style={styles.netPayLabel}>Net pay</Text>
           <Text style={styles.netPayValue}>{formatRinggit(data.netSalary)}</Text>
         </View>
+
+        <Text style={styles.sectionTitle}>Employer contribution</Text>
+        <Row label="EPF (employer)" value={formatRinggit(data.epfEmployer)} />
       </Page>
     </Document>
   );
