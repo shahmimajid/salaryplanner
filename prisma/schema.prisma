@@ -352,12 +352,21 @@ model EPFRate {
 }
 
 model EPFWageBand {
-  id                     String   @id @default(cuid())
-  payrollConfigurationId String   @map("payroll_configuration_id")
-  wageFrom               Decimal  @db.Decimal(12, 2) @map("wage_from")
-  wageTo                 Decimal? @db.Decimal(12, 2) @map("wage_to")
-  employeeContribution   Decimal  @db.Decimal(12, 2) @map("employee_contribution")
-  employerContribution   Decimal  @db.Decimal(12, 2) @map("employer_contribution")
+  id                     String            @id @default(cuid())
+  payrollConfigurationId String            @map("payroll_configuration_id")
+  // KWSP publishes a separate fixed-amount table per Part (citizenship +
+  // age band) — Part A (citizen/PR <60), Part C (PR 60+), Part E (citizen
+  // 60+), Part F (non-citizen, no table at all). Without these, one shared
+  // band list would be wrongly applied to every category. Same
+  // null-means-universal / maxAge-set-means-below-60 / minAge-set-means-60+
+  // convention as EPFRate.
+  citizenshipStatus      CitizenshipStatus @map("citizenship_status")
+  minAge                 Int?              @map("min_age")
+  maxAge                 Int?              @map("max_age")
+  wageFrom               Decimal           @db.Decimal(12, 2) @map("wage_from")
+  wageTo                 Decimal?          @db.Decimal(12, 2) @map("wage_to")
+  employeeContribution   Decimal           @db.Decimal(12, 2) @map("employee_contribution")
+  employerContribution   Decimal           @db.Decimal(12, 2) @map("employer_contribution")
 
   payrollConfiguration PayrollConfiguration @relation(fields: [payrollConfigurationId], references: [id], onDelete: Cascade)
 

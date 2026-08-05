@@ -22,6 +22,9 @@ interface LocalPayrollConfig {
     employerRatePercent: number;
   }>;
   epfWageBands: Array<{
+    citizenshipStatus: CitizenshipStatus;
+    minAge: number | null;
+    maxAge: number | null;
     wageFrom: number;
     wageTo: number | null;
     employeeContribution: number;
@@ -78,6 +81,9 @@ function buildSnapshot(): PayrollConfigSnapshot {
       employerRatePercent: money(r.employerRatePercent),
     })),
     epfWageBands: localConfig.epfWageBands.map((b) => ({
+      citizenshipStatus: b.citizenshipStatus,
+      minAge: b.minAge,
+      maxAge: b.maxAge,
       wageFrom: money(b.wageFrom),
       wageTo: moneyOrNull(b.wageTo),
       employeeContribution: money(b.employeeContribution),

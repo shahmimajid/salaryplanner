@@ -66,6 +66,12 @@ export interface EpfRateRow {
 }
 
 export interface EpfWageBandRow {
+  // KWSP publishes a separate fixed-amount table per Part (citizenship +
+  // age band) — same discriminator convention as EpfRateRow (null age
+  // bounds = universal, maxAge set = below 60, minAge set = 60+).
+  citizenshipStatus: CitizenshipStatus;
+  minAge: number | null;
+  maxAge: number | null;
   wageFrom: Money;
   wageTo: Money | null;
   employeeContribution: Money;

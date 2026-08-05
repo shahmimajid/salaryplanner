@@ -1,10 +1,43 @@
 import Decimal from "decimal.js";
 import type {
+  CitizenshipStatus,
   Money,
   PayrollConfigSnapshot,
   PayrollProfileSnapshot,
 } from "./types";
-import { roundMoney, roundRate } from "./rounding";
+import { roundRate } from "./rounding";
+
+/**
+ * PayrollProfileSnapshot only exposes isBelow60 (not a raw age), so a
+ * config row is treated as the "below 60" row if it declares an upper
+ * bound (maxAge), the "60+" row if it declares a lower bound (minAge),
+ * and a row with neither bound set is a citizenship-wide universal rate
+ * that applies regardless of age (e.g. NON_CITIZEN in the seed data).
+ * Shared by both EPFRate and EPFWageBand lookups — KWSP's Third Schedule
+ * publishes a separate fixed-amount wage-band table per Part (citizenship +
+ * age band), same as it publishes separate percentage rates.
+ */
+function findMatchingRow<
+  T extends { citizenshipStatus: CitizenshipStatus; minAge: number | null; maxAge: number | null },
+>(rows: T[], citizenshipStatus: CitizenshipStatus, isBelow60: boolean): T | undefined {
+  const candidates = rows.filter((row) => row.citizenshipStatus === citizenshipStatus);
+  return (
+    candidates.find((row) => (isBelow60 ? row.maxAge !== null : row.minAge !== null)) ??
+    candidates.find((row) => row.minAge === null && row.maxAge === null)
+  );
+}
+
+/**
+ * EPF contributions round UP to the next whole ringgit — not the 2dp
+ * ROUND_HALF_UP the rest of the engine uses (docs/assumptions.md #12). This
+ * is explicit in every Part of the KWSP Third Schedule: "The total
+ * contribution which includes cents shall be rounded to the next ringgit."
+ * Confirmed against the official table (e.g. wage-band 220.01–240.00:
+ * 240×13%=31.2 rounds to 31 under ROUND_HALF_UP, but the table shows 32).
+ */
+function ceilToRinggit(value: Money): Money {
+  return value.toDecimalPlaces(0, Decimal.ROUND_UP);
+}
 
 export interface EPFInput {
   epfWage: Money; // wage subject to EPF (typically basic + fixed allowance + certain payments, excl. some allowances)
@@ -27,18 +60,7 @@ export interface EPFResult {
 export function calculateEPF(input: EPFInput): EPFResult {
   const { epfWage, profile, config, epfAdjustment } = input;
 
-  // PayrollProfileSnapshot only exposes isBelow60 (not a raw age), so a
-  // config row is treated as the "below 60" row if it declares an upper
-  // bound (maxAge), the "60+" row if it declares a lower bound (minAge),
-  // and a row with neither bound set is a citizenship-wide universal rate
-  // that applies regardless of age (e.g. NON_CITIZEN in the seed data).
-  const candidates = config.epfRates.filter(
-    (row) => row.citizenshipStatus === profile.citizenshipStatus,
-  );
-  const rateRow =
-    candidates.find((row) =>
-      profile.isBelow60 ? row.maxAge !== null : row.minAge !== null,
-    ) ?? candidates.find((row) => row.minAge === null && row.maxAge === null);
+  const rateRow = findMatchingRow(config.epfRates, profile.citizenshipStatus, profile.isBelow60);
 
   if (!rateRow) {
     throw new Error(
@@ -54,7 +76,16 @@ export function calculateEPF(input: EPFInput): EPFResult {
     rateRow.employeeRatePercent.gt(0) || rateRow.employerRatePercent.gt(0);
 
   if (hasStatutoryParticipation) {
-    const band = config.epfWageBands.find(
+    const bandsForProfile = config.epfWageBands.filter(
+      (b) => b.citizenshipStatus === profile.citizenshipStatus,
+    );
+    const applicableBands = profile.isBelow60
+      ? bandsForProfile.filter((b) => b.maxAge !== null)
+      : bandsForProfile.filter((b) => b.minAge !== null);
+    const universalBands = bandsForProfile.filter(
+      (b) => b.minAge === null && b.maxAge === null,
+    );
+    const band = (applicableBands.length > 0 ? applicableBands : universalBands).find(
       (b) =>
         epfWage.gte(b.wageFrom) && (b.wageTo === null || epfWage.lte(b.wageTo)),
     );
@@ -96,8 +127,8 @@ export function calculateEPF(input: EPFInput): EPFResult {
     : new Decimal(0);
 
   return {
-    employeeContribution: roundMoney(employeeContribution),
-    employerContribution: roundMoney(employerContribution),
+    employeeContribution: ceilToRinggit(employeeContribution),
+    employerContribution: ceilToRinggit(employerContribution),
     appliedRatePercent: roundRate(appliedRatePercent),
     appliedWageBandUsed,
   };

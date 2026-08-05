@@ -48,18 +48,27 @@ export function buildRealisticTestConfig(
     // RM19k+ salaries always fall through to the percentage path.
     epfWageBands: [
       {
+        citizenshipStatus: "CITIZEN",
+        minAge: null,
+        maxAge: null,
         wageFrom: d(0),
         wageTo: d(10),
         employeeContribution: d(0),
         employerContribution: d(0),
       },
       {
+        citizenshipStatus: "CITIZEN",
+        minAge: null,
+        maxAge: null,
         wageFrom: d(10.01),
         wageTo: d(20),
         employeeContribution: d(1),
         employerContribution: d(3),
       },
       {
+        citizenshipStatus: "CITIZEN",
+        minAge: null,
+        maxAge: null,
         wageFrom: d(20.01),
         wageTo: d(50),
         employeeContribution: d(3),

@@ -54,7 +54,17 @@ const VALID_INPUT: PayrollConfigFormValues = {
       notes: null,
     },
   ],
-  epfWageBands: [{ wageFrom: 0, wageTo: 10, employeeContribution: 1, employerContribution: 2 }],
+  epfWageBands: [
+    {
+      citizenshipStatus: "CITIZEN",
+      minAge: null,
+      maxAge: null,
+      wageFrom: 0,
+      wageTo: 10,
+      employeeContribution: 1,
+      employerContribution: 2,
+    },
+  ],
   socsoRates: [
     {
       category: "CATEGORY_1",

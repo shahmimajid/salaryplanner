@@ -50,6 +50,9 @@ function mapConfigToSnapshot(config: ConfigWithRates): PayrollConfigSnapshot {
       employerRateAbovePercent: toMoneyOrNull(r.employerRateAbovePercent),
     })),
     epfWageBands: config.epfWageBands.map((b) => ({
+      citizenshipStatus: b.citizenshipStatus,
+      minAge: b.minAge,
+      maxAge: b.maxAge,
       wageFrom: toMoney(b.wageFrom),
       wageTo: toMoneyOrNull(b.wageTo),
       employeeContribution: toMoney(b.employeeContribution),

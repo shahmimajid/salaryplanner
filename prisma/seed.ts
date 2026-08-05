@@ -27,6 +27,9 @@ interface SeedPayrollConfig {
     notes?: string;
   }>;
   epfWageBands: Array<{
+    citizenshipStatus: CitizenshipStatus;
+    minAge: number | null;
+    maxAge: number | null;
     wageFrom: number;
     wageTo: number | null;
     employeeContribution: number;
