@@ -42,6 +42,7 @@ export interface SalaryPipelineInput {
   zakat: Money;
   previousCumulativeIncomeForYear: Money;
   previousCumulativePcbPaid: Money;
+  previousCumulativeEpfForYear: Money;
   monthsElapsedInYear: number;
   isEisExempt: boolean;
   profile: PayrollProfileSnapshot;
@@ -127,6 +128,7 @@ export function runSalaryPipeline(
     currentMonthEpfEmployee: epf.employeeContribution,
     currentMonthSocsoEmployee: socso.employeeContribution,
     previousCumulativeIncomeForYear: input.previousCumulativeIncomeForYear,
+    previousCumulativeEpfForYear: input.previousCumulativeEpfForYear,
     monthsRemainingInYear,
     profile: input.profile,
     config: input.config,
@@ -137,7 +139,6 @@ export function runSalaryPipeline(
       annualIncome.projectedAnnualChargeableIncome,
     residencyStatus: input.profile.residencyStatus,
     previousCumulativePcbPaid: input.previousCumulativePcbPaid,
-    monthsElapsedInYear: input.monthsElapsedInYear,
     monthsRemainingInYear,
     zakatAmount: input.zakat,
     bonusOrIrregularPayment: input.bonus.gt(0) ? input.bonus : null,
@@ -182,6 +183,7 @@ export interface CalculateSalaryEntryInput {
   zakat: Money;
   previousCumulativeIncomeForYear: Money;
   previousCumulativePcbPaid: Money;
+  previousCumulativeEpfForYear: Money;
   /** "YYYY-MM" — matches an HTML <input type="month"> value. */
   payrollMonth: string;
   profile: PayrollProfileSnapshot;
@@ -221,6 +223,7 @@ export function calculateSalaryEntry(
     zakat: input.zakat,
     previousCumulativeIncomeForYear: input.previousCumulativeIncomeForYear,
     previousCumulativePcbPaid: input.previousCumulativePcbPaid,
+    previousCumulativeEpfForYear: input.previousCumulativeEpfForYear,
     monthsElapsedInYear,
     isEisExempt: false, // no exemption data source yet (docs/assumptions.md)
     profile: input.profile,

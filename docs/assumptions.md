@@ -59,10 +59,37 @@ for real use:
    TP1-only reliefs would NOT show up in PCB withholding at all; the
    feature stays (legitimate and correctly sourced for users who genuinely
    filed TP1), but the RM0.90/month residual for this specific case is
-   unconfirmed, not resolved by it. Also still open: the bonus/lump-sum
-   method (item 15) and the cumulative method used for non-January months
-   still being simplified, not the official Kaedah Pengiraan Berkomputer
-   formula's `n+1` divisor recomputed fresh each month.
+   unconfirmed, not resolved by it.
+   **Multi-month cumulative formula corrected 2026-08-06**: a real Feb 2025
+   payslip (same user, `SalaryEntry.overtime` added the same day, see
+   item 29) exposed a much larger gap — RM402.70/month — once a
+   second month was involved. Root cause: `calculatePCB` reconstructed the
+   annual liability as a flat `annualTax / 12` rate applied since month 1
+   (`monthlyPcbBeforeRebates * monthsIncludingCurrent - previousCumulativePcbPaid`),
+   whereas LHDN's official formula divides `(annualTax - previousCumulativePcbPaid)`
+   directly by `monthsRemainingInYear` — recomputed fresh from *that
+   month's own* projected annual tax, not extrapolated from month 1. The
+   two are algebraically identical for January (which is why item 6's
+   original fix looked complete) but diverge from month 2 onward. Fixed by
+   replacing the reconciliation step accordingly; `monthsElapsedInYear`
+   dropped from `PCBInput` entirely (no longer needed). Separately, the EPF
+   relief calculation (`tax-annual-income.ts`) annualized only *this
+   month's* EPF contribution, with no memory of EPF actually withheld in
+   prior months — by February the real cumulative EPF (Jan RM2,134 + Feb
+   RM2,134 = RM4,268) already exceeded the RM4,000 annual cap on its own,
+   which the old formula couldn't see. Fixed by adding
+   `SalaryEntry.previousCumulativeEpfForYear`
+   (mirrors `previousCumulativeIncomeForYear`/`previousCumulativePcbPaid`'s
+   existing self-reported-cumulative pattern) and implementing LHDN's real
+   K/K1/K2 relief-projection terms, including the case where K2 goes
+   negative once K+K1 alone already exceeds the cap. Verified by hand for
+   Feb: both fixes together land at RM3,506.25 against the real payslip's
+   RM3,504.35 — RM1.90/month residual, the same order of magnitude as
+   January's own RM0.90 gap and not investigated further. Still open: the
+   `bonus`/lump-sum marginal-diff method (item 15, untouched by this fix)
+   and `SOCSO_RELIEF`'s own analogous cumulative-tracking gap (still
+   documented in `tax-annual-income.ts`, not fixed — doesn't affect a user
+   with `claimsSocsoRelief: false`).
 7. Full current-year tax relief schedule (self, spouse, per-child, EPF/life
    insurance, lifestyle, medical, SSPN, etc.) and amounts; and how a
    child-relief split between spouses (`childReliefClaims` percentages)

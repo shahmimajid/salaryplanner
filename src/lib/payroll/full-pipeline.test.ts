@@ -38,6 +38,7 @@ function runFullPipeline(input: {
     zakat: input.zakat,
     previousCumulativeIncomeForYear: input.previousCumulativeIncomeForYear,
     previousCumulativePcbPaid: input.previousCumulativePcbPaid,
+    previousCumulativeEpfForYear: d(0),
     monthsElapsedInYear: input.monthsElapsedInYear,
     isEisExempt: false,
     profile: input.profile,

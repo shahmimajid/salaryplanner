@@ -206,6 +206,7 @@ model SalaryEntry {
   zakat                          Decimal                      @default(0) @db.Decimal(12, 2)
   previousCumulativeIncomeForYear Decimal                     @default(0) @db.Decimal(14, 2) @map("previous_cumulative_income_for_year")
   previousCumulativePcbPaid       Decimal                     @default(0) @db.Decimal(14, 2) @map("previous_cumulative_pcb_paid")
+  previousCumulativeEpfForYear    Decimal                     @default(0) @db.Decimal(14, 2) @map("previous_cumulative_epf_for_year")
   notes                           String?                     @db.Text
 
   createdAt DateTime @default(now()) @map("created_at")

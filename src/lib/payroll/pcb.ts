@@ -6,7 +6,6 @@ export interface PCBInput {
   projectedAnnualChargeableIncome: Money;
   residencyStatus: ResidencyStatus;
   previousCumulativePcbPaid: Money;
-  monthsElapsedInYear: number;
   monthsRemainingInYear: number;
   zakatAmount: Money; // rebate against PCB, not a relief
   bonusOrIrregularPayment: Money | null; // triggers separate lump-sum PCB method if present
@@ -92,7 +91,7 @@ export function calculatePCB(input: PCBInput): PCBResult {
     projectedAnnualChargeableIncome,
     residencyStatus,
     previousCumulativePcbPaid,
-    monthsElapsedInYear,
+    monthsRemainingInYear,
     zakatAmount,
     bonusOrIrregularPayment,
     config,
@@ -119,16 +118,19 @@ export function calculatePCB(input: PCBInput): PCBResult {
     applyThresholdRebates(annualTaxPayable, projectedAnnualChargeableIncome, config.taxRebates);
   annualTaxPayable = annualTaxAfterThresholdRebates;
 
-  // Standard cumulative method: spread the annual liability over all 12
-  // months, then reconcile against what's already been withheld this year.
+  // Display-only flat average rate — not used in the reconciliation below.
   const monthlyPcbBeforeRebates = annualTaxPayable.div(12);
 
-  const monthsIncludingCurrent = monthsElapsedInYear + 1;
-  const cumulativeShouldHaveBeenWithheld = monthlyPcbBeforeRebates.times(
-    monthsIncludingCurrent,
-  );
+  // LHDN's official formula: (annual tax - previously withheld) / n+1,
+  // where n+1 = months from this one through December inclusive
+  // (monthsRemainingInYear) — recomputed fresh each month from that
+  // month's own projected annual tax, not a flat monthly-rate x
+  // months-elapsed reconstruction. Coincides exactly with the old formula
+  // for January (previousCumulativePcbPaid=0, monthsRemainingInYear=12);
+  // diverges from month 2 onward, which is where the old formula's error
+  // came from (confirmed via a real Feb 2025 payslip).
   const currentMonthPcbBeforeRebate = Decimal.max(
-    cumulativeShouldHaveBeenWithheld.minus(previousCumulativePcbPaid),
+    annualTaxPayable.minus(previousCumulativePcbPaid).div(monthsRemainingInYear),
     0,
   );
 

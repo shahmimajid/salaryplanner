@@ -11,6 +11,7 @@ export interface AnnualTaxableIncomeInput {
   currentMonthEpfEmployee: Money; // deductible up to relief cap
   currentMonthSocsoEmployee: Money; // TP1-gated relief, this month's contribution only — see SOCSO_RELIEF below
   previousCumulativeIncomeForYear: Money;
+  previousCumulativeEpfForYear: Money; // actual EPF withheld in prior months this year — LHDN's "K"
   monthsRemainingInYear: number; // for projecting annualized income
   profile: PayrollProfileSnapshot;
   config: Pick<PayrollConfigSnapshot, "taxReliefs">;
@@ -39,6 +40,7 @@ export function calculateAnnualTaxableIncome(
     currentMonthEpfEmployee,
     currentMonthSocsoEmployee,
     previousCumulativeIncomeForYear,
+    previousCumulativeEpfForYear,
     monthsRemainingInYear,
     profile,
     config,
@@ -90,15 +92,26 @@ export function calculateAnnualTaxableIncome(
       }
     }
 
-    // Simplified: annualizes this month's EPF employee contribution rather
-    // than using actual year-to-date EPF, since this function has no
-    // previousCumulativeEpfForYear input (docs/assumptions.md gap).
+    // LHDN's official MTD formula (K/K1/K2 terms): K = actual EPF withheld
+    // in prior months this year, K1 = this month's EPF, K2 = a residual
+    // relief-budget projection for the n months strictly after this one —
+    // min[(cap - K - K1) / n, K1], which can go *negative* once K+K1 alone
+    // already exceeds the cap (confirmed via a real Feb 2025 payslip:
+    // Jan+Feb EPF alone totaled RM4,268, over the RM4,000 cap — the old
+    // simplified "annualize this month's EPF only" formula didn't know
+    // that and understated the annual tax liability by ~RM400/month).
     const epfRow = findRelief(config.taxReliefs, "EPF_LIFE_INSURANCE");
     if (epfRow) {
-      const annualizedEpf = currentMonthEpfEmployee.times(
-        monthsRemainingInYear,
-      );
-      const applied = Decimal.min(annualizedEpf, epfRow.maxAmount);
+      const K = previousCumulativeEpfForYear;
+      const K1 = currentMonthEpfEmployee;
+      const n = monthsRemainingInYear - 1;
+      const rawEpfRelief =
+        n > 0
+          ? K.plus(K1).plus(
+              Decimal.min(epfRow.maxAmount.minus(K).minus(K1).div(n), K1).times(n),
+            )
+          : K.plus(K1);
+      const applied = Decimal.min(Decimal.max(rawEpfRelief, 0), epfRow.maxAmount);
       if (applied.gt(0)) {
         reliefBreakdown.push({
           code: "EPF_LIFE_INSURANCE",

@@ -13,6 +13,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(2099.68),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile(),
       config,
@@ -37,12 +38,31 @@ describe("calculateAnnualTaxableIncome", () => {
     expect(epf.amountApplied.toString()).toBe("7000"); // capped at maxAmount (annualized EPF > 7000)
   });
 
+  it("nets the EPF relief to exactly the cap once prior + this month's actual EPF alone already exceed it (LHDN's K/K1/K2 formula, confirmed via a real Feb 2025 payslip)", () => {
+    const result = calculateAnnualTaxableIncome({
+      currentMonthGrossTaxableIncome: d(19088),
+      currentMonthEpfEmployee: d(4000), // K1
+      currentMonthSocsoEmployee: d(0),
+      previousCumulativeIncomeForYear: d(19088),
+      previousCumulativeEpfForYear: d(4000), // K — K + K1 = 8000, already over the fixture's RM7,000 cap
+      monthsRemainingInYear: 11,
+      profile: buildTestProfile(),
+      config,
+    });
+
+    const epf = result.reliefBreakdown.find(
+      (r) => r.code === "EPF_LIFE_INSURANCE",
+    )!;
+    expect(epf.amountApplied.toString()).toBe("7000");
+  });
+
   it("omits SPOUSE relief when the spouse has income", () => {
     const result = calculateAnnualTaxableIncome({
       currentMonthGrossTaxableIncome: d(19088),
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ spouseHasIncome: true }),
       config,
@@ -56,6 +76,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
         maritalStatus: "SINGLE",
@@ -72,6 +93,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
         childReliefClaims: [
@@ -93,6 +115,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({
         childReliefClaims: [
@@ -112,6 +135,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(2134),
       currentMonthSocsoEmployee: d(29.75),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile(),
       config,
@@ -125,6 +149,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(2134),
       currentMonthSocsoEmployee: d(29.75),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ claimsSocsoRelief: true }),
       config,
@@ -140,6 +165,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(2134),
       currentMonthSocsoEmployee: d(500), // exceeds the RM350 cap
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ claimsSocsoRelief: true }),
       config,
@@ -154,6 +180,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(2099.68),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 12,
       profile: buildTestProfile({ residencyStatus: "NON_RESIDENT" }),
       config,
@@ -170,6 +197,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(5000), // 5 months already paid at 1000/mo
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 7,
       profile: buildTestProfile({ residencyStatus: "NON_RESIDENT" }), // isolate from reliefs
       config,
@@ -183,6 +211,7 @@ describe("calculateAnnualTaxableIncome", () => {
       currentMonthEpfEmployee: d(0),
       currentMonthSocsoEmployee: d(0),
       previousCumulativeIncomeForYear: d(0),
+      previousCumulativeEpfForYear: d(0),
       monthsRemainingInYear: 1,
       profile: buildTestProfile(),
       config,

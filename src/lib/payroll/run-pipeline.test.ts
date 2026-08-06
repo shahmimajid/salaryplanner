@@ -27,6 +27,7 @@ function baseInput(
     zakat: d(0),
     previousCumulativeIncomeForYear: d(0),
     previousCumulativePcbPaid: d(0),
+    previousCumulativeEpfForYear: d(0),
     payrollMonth: "2026-01",
     profile,
     config,
