@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { NumberField } from "@/components/calculator/number-field";
+import { StatutoryTreatmentNote } from "@/components/calculator/statutory-treatment-note";
 import { WeekendSupportFields } from "@/components/calculator/weekend-support-fields";
 import { ResultsPanel } from "@/components/calculator/results-panel";
 import { SavingsPlanner } from "@/components/calculator/savings-planner";
@@ -198,11 +199,14 @@ export function SalaryEntryForm({
                   )}
                 />
 
-                <NumberField
-                  name="basicSalary"
-                  label="Basic salary (RM)"
-                  tooltip="Your fixed monthly base pay before allowances, bonus, or weekend support."
-                />
+                <div>
+                  <NumberField
+                    name="basicSalary"
+                    label="Basic salary (RM)"
+                    tooltip="Your fixed monthly base pay before allowances, bonus, or weekend support."
+                  />
+                  <StatutoryTreatmentNote field="basicSalary" />
+                </div>
 
                 <WeekendSupportFields />
 
@@ -234,29 +238,39 @@ export function SalaryEntryForm({
                 </CollapsibleTrigger>
                 <CollapsibleContent>
                   <CardContent className="grid gap-4 sm:grid-cols-2">
-                    <NumberField
-                      name="fixedAllowance"
-                      label="Fixed allowance (RM)"
-                    />
-                    <NumberField
-                      name="bonus"
-                      label="Bonus (RM)"
-                      tooltip="Additional remuneration such as a bonus — taxed via a separate lump-sum PCB estimate."
-                    />
-                    <NumberField name="commission" label="Commission (RM)" />
-                    <NumberField
-                      name="overtime"
-                      label="Overtime (RM)"
-                      tooltip="Taxable, but excluded from the EPF wage base (EPF Act Third Schedule)."
-                    />
-                    <NumberField
-                      name="otherTaxableIncome"
-                      label="Other taxable income (RM)"
-                    />
-                    <NumberField
-                      name="otherNonTaxableReimbursement"
-                      label="Other non-taxable reimbursement (RM)"
-                    />
+                    <div>
+                      <NumberField
+                        name="fixedAllowance"
+                        label="Fixed allowance (RM)"
+                      />
+                      <StatutoryTreatmentNote field="fixedAllowance" />
+                    </div>
+                    <div>
+                      <NumberField name="bonus" label="Bonus (RM)" />
+                      <StatutoryTreatmentNote field="bonus" />
+                    </div>
+                    <div>
+                      <NumberField name="commission" label="Commission (RM)" />
+                      <StatutoryTreatmentNote field="commission" />
+                    </div>
+                    <div>
+                      <NumberField name="overtime" label="Overtime (RM)" />
+                      <StatutoryTreatmentNote field="overtime" />
+                    </div>
+                    <div>
+                      <NumberField
+                        name="otherTaxableIncome"
+                        label="Other taxable income (RM)"
+                      />
+                      <StatutoryTreatmentNote field="otherTaxableIncome" />
+                    </div>
+                    <div>
+                      <NumberField
+                        name="otherNonTaxableReimbursement"
+                        label="Other non-taxable reimbursement (RM)"
+                      />
+                      <StatutoryTreatmentNote field="otherNonTaxableReimbursement" />
+                    </div>
                     <NumberField
                       name="epfAdjustment"
                       label="Employee EPF adjustment (RM)"

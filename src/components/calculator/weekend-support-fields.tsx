@@ -10,6 +10,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { FieldTooltip } from "@/components/calculator/field-tooltip";
 import { NumberField } from "@/components/calculator/number-field";
+import { StatutoryTreatmentNote } from "@/components/calculator/statutory-treatment-note";
 import type { SalaryEntryFormValues } from "@/components/calculator/schema";
 
 const PAYMENT_METHOD_LABELS: Record<
@@ -38,6 +39,7 @@ export function WeekendSupportFields() {
           — not statutory overtime by default.
         </FieldTooltip>
       </div>
+      <StatutoryTreatmentNote field="weekendSupportAllowance" />
 
       <FormField
         control={form.control}
