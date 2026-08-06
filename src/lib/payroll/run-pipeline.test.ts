@@ -20,6 +20,7 @@ function baseInput(
     weekendSupportManualTotalAmount: d(0),
     bonus: d(0),
     commission: d(0),
+    overtime: d(0),
     otherTaxableIncome: d(0),
     otherNonTaxableReimbursement: d(0),
     epfAdjustment: d(0),
@@ -63,6 +64,23 @@ describe("calculateSalaryEntry", () => {
     expect(
       result.weekendSupport.netAdditionalIncomeFromWeekendSupport.gt(0),
     ).toBe(true);
+  });
+
+  it("excludes overtime from the EPF wage base while keeping it in gross/taxable income (EPF Act Third Schedule — confirmed via a real Feb 2025 payslip, docs/assumptions.md)", () => {
+    const withoutOvertime = calculateSalaryEntry(baseInput()).withoutWeekendSupport;
+    const withOvertime = calculateSalaryEntry(
+      baseInput({ overtime: d(1920) }),
+    ).withoutWeekendSupport;
+
+    expect(withOvertime.epf.employeeContribution.toString()).toBe(
+      withoutOvertime.epf.employeeContribution.toString(),
+    );
+    expect(withOvertime.epf.employerContribution.toString()).toBe(
+      withoutOvertime.epf.employerContribution.toString(),
+    );
+    expect(withOvertime.gross.grossTaxableIncome.toString()).toBe(
+      withoutOvertime.gross.grossTaxableIncome.plus(1920).toString(),
+    );
   });
 
   it("resolves the FIXED_PER_DAY payment method through to the gross amount", () => {

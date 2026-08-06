@@ -7,6 +7,7 @@ export interface GrossIncomeInput {
   weekendSupportAllowance: Money;
   bonus: Money;
   commission: Money;
+  overtime: Money;
   otherTaxableIncome: Money;
   otherNonTaxableReimbursement: Money;
 }
@@ -26,6 +27,7 @@ export function calculateGrossIncome(
     .plus(input.weekendSupportAllowance)
     .plus(input.bonus)
     .plus(input.commission)
+    .plus(input.overtime)
     .plus(input.otherTaxableIncome);
 
   const grossNonTaxableIncome = input.otherNonTaxableReimbursement;

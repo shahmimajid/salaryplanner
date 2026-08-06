@@ -31,6 +31,7 @@ function runFullPipeline(input: {
     weekendSupportAllowance: input.weekendSupportAllowance,
     bonus: input.bonus,
     commission: d(0),
+    overtime: d(0),
     otherTaxableIncome: d(0),
     otherNonTaxableReimbursement: d(0),
     epfAdjustment: d(0),

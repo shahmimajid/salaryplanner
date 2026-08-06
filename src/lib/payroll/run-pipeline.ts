@@ -35,6 +35,7 @@ export interface SalaryPipelineInput {
   weekendSupportAllowance: Money;
   bonus: Money;
   commission: Money;
+  overtime: Money;
   otherTaxableIncome: Money;
   otherNonTaxableReimbursement: Money;
   epfAdjustment: Money;
@@ -80,12 +81,19 @@ export function runSalaryPipeline(
     weekendSupportAllowance: input.weekendSupportAllowance,
     bonus: input.bonus,
     commission: input.commission,
+    overtime: input.overtime,
     otherTaxableIncome: input.otherTaxableIncome,
     otherNonTaxableReimbursement: input.otherNonTaxableReimbursement,
   });
 
-  const epfWage = gross.grossTaxableIncome; // bonus included in EPF wage
-  const socsoEisWage = gross.grossTaxableIncome.minus(input.bonus); // bonus excluded
+  // EPF Act 1991 Third Schedule excludes overtime payment from EPF "wages"
+  // (alongside service charge, gratuity, retrenchment benefits, travelling
+  // allowance) — confirmed against a real payslip (docs/assumptions.md):
+  // EPF stayed identical with/without a month's overtime. Bonus is also
+  // excluded here, but for a different reason — it's routed through
+  // calculatePCB's separate lump-sum path below, not because EPF exempts it.
+  const epfWage = gross.grossTaxableIncome.minus(input.overtime);
+  const socsoEisWage = gross.grossTaxableIncome.minus(input.bonus); // bonus excluded, overtime included (assumption — docs/assumptions.md)
 
   const epf = calculateEPF({
     epfWage,
@@ -167,6 +175,7 @@ export interface CalculateSalaryEntryInput {
   weekendSupportManualTotalAmount: Money | null;
   bonus: Money;
   commission: Money;
+  overtime: Money;
   otherTaxableIncome: Money;
   otherNonTaxableReimbursement: Money;
   epfAdjustment: Money;
@@ -205,6 +214,7 @@ export function calculateSalaryEntry(
     fixedAllowance: input.fixedAllowance,
     bonus: input.bonus,
     commission: input.commission,
+    overtime: input.overtime,
     otherTaxableIncome: input.otherTaxableIncome,
     otherNonTaxableReimbursement: input.otherNonTaxableReimbursement,
     epfAdjustment: input.epfAdjustment,

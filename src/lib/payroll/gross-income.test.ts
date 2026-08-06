@@ -12,6 +12,7 @@ describe("calculateGrossIncome", () => {
       weekendSupportAllowance: d(1000),
       bonus: d(0),
       commission: d(0),
+      overtime: d(0),
       otherTaxableIncome: d(200),
       otherNonTaxableReimbursement: d(150),
     });
@@ -29,6 +30,7 @@ describe("calculateGrossIncome", () => {
       weekendSupportAllowance: zero,
       bonus: zero,
       commission: zero,
+      overtime: zero,
       otherTaxableIncome: zero,
       otherNonTaxableReimbursement: zero,
     });
@@ -42,9 +44,24 @@ describe("calculateGrossIncome", () => {
       weekendSupportAllowance: d(0),
       bonus: d(0),
       commission: d(0),
+      overtime: d(0),
       otherTaxableIncome: d(0),
       otherNonTaxableReimbursement: d(0),
     });
     expect(result.grossTaxableIncome.toString()).toBe("19088.01");
+  });
+
+  it("includes overtime in taxable income (it's excluded only from the EPF wage base, see run-pipeline.ts)", () => {
+    const result = calculateGrossIncome({
+      basicSalary: d(19388),
+      fixedAllowance: d(0),
+      weekendSupportAllowance: d(0),
+      bonus: d(0),
+      commission: d(0),
+      overtime: d(1920),
+      otherTaxableIncome: d(0),
+      otherNonTaxableReimbursement: d(0),
+    });
+    expect(result.grossTaxableIncome.toString()).toBe("21308");
   });
 });
