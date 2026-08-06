@@ -24,6 +24,7 @@ export const salaryEntryFormSchema = z
     weekendSupportManualTotalAmount: z.number().min(0).optional(),
     bonus: z.number().min(0),
     commission: z.number().min(0),
+    overtime: z.number().min(0),
     otherTaxableIncome: z.number().min(0),
     otherNonTaxableReimbursement: z.number().min(0),
     epfAdjustment: z.number(),

@@ -226,3 +226,20 @@ for real use:
     admin-role change; not acceptable if role changes ever need to be
     instant (e.g. an emergency de-admin) — that would need DB sessions or a
     short JWT `maxAge` with forced re-auth.
+29. **Overtime** (`SalaryEntry.overtime`, added 2026-08-06): confirmed via a
+    real Feb 2025 payslip that overtime pay is taxable (included in gross/
+    PCB taxable income) but **excluded from the EPF wage base** — EPF
+    stayed identical with vs without that month's RM1,920 overtime, matching
+    the EPF Act 1991 Third Schedule's explicit exclusion of overtime payment
+    from EPF "wages" (alongside service charge, gratuity, retrenchment
+    benefits, and travelling allowance — ordinary allowances, commission,
+    and bonus remain EPF wages). `run-pipeline.ts`'s `epfWage` now excludes
+    `overtime`. **Not yet confirmed**: whether overtime counts toward the
+    SOCSO/EIS wage base — the payslip's SOCSO/EIS figures were already at
+    the RM6,000 ceiling, so they can't confirm or refute it either way.
+    Currently modeled as **included** in SOCSO/EIS wage (matches the
+    broader Employees' Social Security Act wage definition and how
+    `commission`/`otherTaxableIncome` are already treated) — an assumption,
+    not an official source. Also treated as ordinary "Normal Remuneration"
+    for PCB (LHDN MTD spec terminology) since it's paid with normal monthly
+    wages, not routed through the `bonus`-only lump-sum path.

@@ -71,6 +71,7 @@ export async function loadCalculationDetail(
     weekendSupportManualTotalAmount: method === "MANUAL_TOTAL" ? weekendSupportAllowance : null,
     bonus: new Decimal(entry.bonus.toString()),
     commission: new Decimal(entry.commission.toString()),
+    overtime: new Decimal(entry.overtime.toString()),
     otherTaxableIncome: new Decimal(entry.otherTaxableIncome.toString()),
     otherNonTaxableReimbursement: new Decimal(entry.otherNonTaxableReimbursement.toString()),
     epfAdjustment: new Decimal(entry.epfAdjustment.toString()),

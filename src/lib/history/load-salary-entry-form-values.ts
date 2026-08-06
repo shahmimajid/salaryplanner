@@ -40,6 +40,7 @@ export async function loadSalaryEntryFormValues(
       method === "MANUAL_TOTAL" ? weekendSupportAllowance : undefined,
     bonus: Number(entry.bonus),
     commission: Number(entry.commission),
+    overtime: Number(entry.overtime),
     otherTaxableIncome: Number(entry.otherTaxableIncome),
     otherNonTaxableReimbursement: Number(entry.otherNonTaxableReimbursement),
     epfAdjustment: Number(entry.epfAdjustment),

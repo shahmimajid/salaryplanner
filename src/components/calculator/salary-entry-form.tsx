@@ -119,6 +119,7 @@ export function SalaryEntryForm({
       weekendSupportManualTotalAmount: 0,
       bonus: 0,
       commission: 0,
+      overtime: 0,
       otherTaxableIncome: 0,
       otherNonTaxableReimbursement: 0,
       epfAdjustment: 0,
@@ -242,6 +243,11 @@ export function SalaryEntryForm({
                       tooltip="Additional remuneration such as a bonus — taxed via a separate lump-sum PCB estimate."
                     />
                     <NumberField name="commission" label="Commission (RM)" />
+                    <NumberField
+                      name="overtime"
+                      label="Overtime (RM)"
+                      tooltip="Taxable, but excluded from the EPF wage base (EPF Act Third Schedule)."
+                    />
                     <NumberField
                       name="otherTaxableIncome"
                       label="Other taxable income (RM)"

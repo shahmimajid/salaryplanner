@@ -76,6 +76,7 @@ const VALID_INPUT = {
   weekendSupportManualTotalAmount: 0,
   bonus: 0,
   commission: 0,
+  overtime: 0,
   otherTaxableIncome: 0,
   otherNonTaxableReimbursement: 0,
   epfAdjustment: 0,

@@ -83,6 +83,9 @@ export async function renderPayslipPdf(
         {entryValues.commission > 0 ? (
           <Row label="Commission" value={formatRinggit(entryValues.commission)} />
         ) : null}
+        {entryValues.overtime > 0 ? (
+          <Row label="Overtime" value={formatRinggit(entryValues.overtime)} />
+        ) : null}
         {entryValues.otherTaxableIncome > 0 ? (
           <Row label="Other taxable income" value={formatRinggit(entryValues.otherTaxableIncome)} />
         ) : null}

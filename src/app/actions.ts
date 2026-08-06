@@ -53,6 +53,7 @@ export async function calculateSalaryAction(
     ),
     bonus: toMoney(value.bonus),
     commission: toMoney(value.commission),
+    overtime: toMoney(value.overtime),
     otherTaxableIncome: toMoney(value.otherTaxableIncome),
     otherNonTaxableReimbursement: toMoney(value.otherNonTaxableReimbursement),
     epfAdjustment: toMoney(value.epfAdjustment),

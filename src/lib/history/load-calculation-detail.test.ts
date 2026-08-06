@@ -82,6 +82,7 @@ function entryRow(profileSnapshot: unknown) {
     weekendSupportAllowance: d(0),
     bonus: d(0),
     commission: d(0),
+    overtime: d(0),
     otherTaxableIncome: d(0),
     otherNonTaxableReimbursement: d(0),
     epfAdjustment: d(0),
