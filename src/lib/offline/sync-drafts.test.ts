@@ -16,6 +16,7 @@ const VALID_VALUES: SalaryEntryFormValues = {
   zakat: 0,
   previousCumulativeIncomeForYear: 0,
   previousCumulativePcbPaid: 0,
+  previousCumulativeEpfForYear: 0,
 };
 
 const listDrafts = vi.fn();

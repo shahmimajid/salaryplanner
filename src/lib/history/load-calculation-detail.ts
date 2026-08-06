@@ -78,6 +78,7 @@ export async function loadCalculationDetail(
     zakat: new Decimal(entry.zakat.toString()),
     previousCumulativeIncomeForYear: new Decimal(entry.previousCumulativeIncomeForYear.toString()),
     previousCumulativePcbPaid: new Decimal(entry.previousCumulativePcbPaid.toString()),
+    previousCumulativeEpfForYear: new Decimal(entry.previousCumulativeEpfForYear.toString()),
     payrollMonth: dateToPayrollMonth(entry.payrollMonth),
     profile,
     config,

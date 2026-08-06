@@ -89,6 +89,7 @@ function entryRow(profileSnapshot: unknown) {
     zakat: d(0),
     previousCumulativeIncomeForYear: d(0),
     previousCumulativePcbPaid: d(0),
+    previousCumulativeEpfForYear: d(0),
     calculations: [{ payrollConfigurationId: "config-1", profileSnapshot }],
   };
 }

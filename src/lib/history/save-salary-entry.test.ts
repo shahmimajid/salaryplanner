@@ -83,6 +83,7 @@ const VALID_INPUT = {
   zakat: 0,
   previousCumulativeIncomeForYear: 0,
   previousCumulativePcbPaid: 0,
+  previousCumulativeEpfForYear: 0,
 };
 
 beforeEach(() => {

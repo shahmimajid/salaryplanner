@@ -62,6 +62,7 @@ export async function calculateSalaryAction(
       value.previousCumulativeIncomeForYear,
     ),
     previousCumulativePcbPaid: toMoney(value.previousCumulativePcbPaid),
+    previousCumulativeEpfForYear: toMoney(value.previousCumulativeEpfForYear),
     // value.payrollMonth is already "YYYY-MM" (native <input type="month"> value).
     payrollMonth: value.payrollMonth,
     profile: DEFAULT_PAYROLL_PROFILE,

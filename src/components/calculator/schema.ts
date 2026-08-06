@@ -31,6 +31,7 @@ export const salaryEntryFormSchema = z
     zakat: z.number().min(0),
     previousCumulativeIncomeForYear: z.number().min(0),
     previousCumulativePcbPaid: z.number().min(0),
+    previousCumulativeEpfForYear: z.number().min(0),
     notes: z.string().max(2000).optional(),
   })
   .superRefine((value, ctx) => {

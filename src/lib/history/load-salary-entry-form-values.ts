@@ -47,6 +47,7 @@ export async function loadSalaryEntryFormValues(
     zakat: Number(entry.zakat),
     previousCumulativeIncomeForYear: Number(entry.previousCumulativeIncomeForYear),
     previousCumulativePcbPaid: Number(entry.previousCumulativePcbPaid),
+    previousCumulativeEpfForYear: Number(entry.previousCumulativeEpfForYear),
     notes: entry.notes ?? undefined,
   };
 }

@@ -126,6 +126,7 @@ export function SalaryEntryForm({
       zakat: 0,
       previousCumulativeIncomeForYear: 0,
       previousCumulativePcbPaid: 0,
+      previousCumulativeEpfForYear: 0,
       ...initialValues,
     },
   });
@@ -269,6 +270,11 @@ export function SalaryEntryForm({
                     <NumberField
                       name="previousCumulativePcbPaid"
                       label="Previous cumulative PCB paid (RM)"
+                    />
+                    <NumberField
+                      name="previousCumulativeEpfForYear"
+                      label="Previous cumulative EPF (employee) this year (RM)"
+                      tooltip="Actual EPF withheld in prior months this year — used to project the remaining EPF relief budget correctly."
                     />
                     <div className="sm:col-span-2">
                       <FormField

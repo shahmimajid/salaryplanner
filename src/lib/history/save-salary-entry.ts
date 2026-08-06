@@ -66,6 +66,7 @@ export async function saveSalaryEntry(
     zakat: toMoney(value.zakat),
     previousCumulativeIncomeForYear: toMoney(value.previousCumulativeIncomeForYear),
     previousCumulativePcbPaid: toMoney(value.previousCumulativePcbPaid),
+    previousCumulativeEpfForYear: toMoney(value.previousCumulativeEpfForYear),
     payrollMonth: value.payrollMonth,
     profile,
     config,
@@ -95,6 +96,7 @@ export async function saveSalaryEntry(
     zakat: value.zakat.toString(),
     previousCumulativeIncomeForYear: value.previousCumulativeIncomeForYear.toString(),
     previousCumulativePcbPaid: value.previousCumulativePcbPaid.toString(),
+    previousCumulativeEpfForYear: value.previousCumulativeEpfForYear.toString(),
     notes: value.notes ?? null,
   };
 
